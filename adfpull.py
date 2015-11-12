@@ -26,23 +26,16 @@ fileName += "_" + city
 fileName += "_" + location
 fileName += "_" + today
 
-devices = []
-for line in os.popen('adb devices').read().split("\n"):
-  device = line.split("\t")
-  if len(device) == 2:
-    devices.append(device[0])
+device = [line.split("\t") for line in os.popen('adb devices').read().split("\n") if len(line.split("\t")) == 2]
+devices = [dev[0] for dev in device]
 
-raw_data = []
-for line in os.popen("adb -s %s shell ls data/data/com.projecttango.tangomapper/files/" % serial).read().split("\n"):
-  line = line.split("\r")
-  if len(line) == 2:
-    raw_data.append(line[0])
-
-adf = []
-for line in os.popen("adb -s %s shell ls data/data/com.projecttango.tango/files/Tango/ADFs/" % serial).read().split("\n"):
-  line = line.split("\r")
-  if len(line) == 2:
-    adf.append(line[0])
+for serial in devices:
+  com_str = "adb -s %s shell ls data/data/com.projecttango.tangomapper/files/" % serial
+  command = "adb -s %s shell ls data/data/com.projecttango.tango/files/Tango/ADFs/" % serial
+  raw = [line.split("\r") for line in os.popen(com_str).read().split("\n") if len(line.split("\r")) == 2]
+  adflist = [line.split("\r") for line in os.popen(command).read().split("\n") if len(line.split("\r")) ==2]
+  raw_data = [data[0] for data in raw]
+  adf = [i[0][0] for i in adflist]
 
 
 def mkdir(fileName):
