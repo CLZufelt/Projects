@@ -1,0 +1,43 @@
+<html>
+<head>
+<script type="application/javascript">
+var 
+
+function draw() {
+  draw_paddles();
+  draw_puck();
+  console.log("Drawing frame");
+  setTimeout(draw, 22250);
+}
+
+function draw_paddles() {
+  var canvas = document.getElementById('pong');
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = "rgb(80,80,80)";
+  ctx.fillRect(0,0,10,50);
+
+  ctx.fillStyle = "rgb(80,80,80)";
+  ctx.fillRect(490,450,10,50);
+
+}
+
+function draw_puck() {
+  var canvas = document.getElementById('pong');
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = "rgb(0,0,0)";
+  ctx.fillRect(250,250,10,10);
+  
+}
+
+
+</script>
+
+</head>
+<body onload="draw();">
+
+Some text here <br>
+<canvas id="pong" style="border: 1px solid black;" width="500" height="500"></canvas>
+<br> And some text here
+
+</body>
+</html>
