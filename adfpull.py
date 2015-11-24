@@ -26,16 +26,23 @@ fileName += "_" + city
 fileName += "_" + location
 fileName += "_" + today
 
-device = [line.split("\t") for line in os.popen('adb devices').read().split("\n") if len(line.split("\t")) == 2]
-devices = [dev[0] for dev in device]
+dev_list = [line.split("\t") for line in os.popen('adb devices').read().split("\n") if len(line.split("\t")) == 2]
+devices = [device[0] for device in dev_list]
 
-for serial in devices:
-  com_str = "adb -s %s shell ls data/data/com.projecttango.tangomapper/files/" % serial
-  command = "adb -s %s shell ls data/data/com.projecttango.tango/files/Tango/ADFs/" % serial
-  raw = [line.split("\r") for line in os.popen(com_str).read().split("\n") if len(line.split("\r")) == 2]
-  adflist = [line.split("\r") for line in os.popen(command).read().split("\n") if len(line.split("\r")) ==2]
-  raw_data = [data[0] for data in raw]
-  adf = [i[0][0] for i in adflist]
+
+def get_adf_list(devices):
+  get_raw_adf_list = "adb -s %s shell ls data/data/com.projecttango.tangomapper/files/" % devices
+  adfs = "adb -s %s shell ls data/data/com.projecttango.tango/files/Tango/ADFs/" % devices
+  raw = [line.split("\r") for line in os.popen(get_raw_adf_list).read().split("\n") if len(line.split("\r")) == 2]
+  adflist = [line.split("\r") for line in os.popen(adfs).read().split("\n") if len(line.split("\r")) ==2]
+  if raw[0][0].endswith("No such file or directory"):
+    print  "This device, %s, has no adf's to pull." % devices
+    raw_data = None
+    adf = None
+  else:
+    raw_data = [data[0] for data in raw]
+    adf = [i[0] for i in adflist]
+  return raw_data, adf
 
 
 def mkdir(fileName):
@@ -48,23 +55,37 @@ def mkdir(fileName):
   else:
     os.system("mkdir " + fileName + "_01")
     fileName += "_01"
+  return fileName
 
-def adf_pull():
-  if len(devices) > 1:
-    print "Pay attention now, I'm going to turn the devices on in order by serial number..."
-    for serial in devices:
-      print "Turning on %s now." % serial
-      subprocess.call(["adb", "-s", serial, "shell", "input", "keyevent", "26"])
-      subprocess.call(["adb", "-s", serial, "shell", "input", "keyevent", "82"])
-      time.sleep(3)
-    serial = raw_input("Input the serial number for the device you wish to pull from here: ")
-  else:
-    serial = devices[0]
-  for d in raw_data:
-    pull_from = "data/data/com.projecttango.tangomapper/files/" + d
-    print "This takes some time, often as much as several hours. Please be patient."
-    os.system("adb -s %s pull %s %s" % (serial, pull_from, fileName))
+def adf_pull(devices):
+  for device in devices:
+    raw_data, adf = get_adf_list(device)
+    start = time.time()
+    for data in raw_data:
+      time.sleep(5)
+      start = time.time()
+      pull_from = "data/data/com.projecttango.tangomapper/files/" + data
+      os.system("adb -s %s pull %s %s" % (device, pull_from, mkdir(fileName)))
+      print "The pull took: "
+      countup(start)
+    countup(start)
 
+
+def countup(start_time):
+  """Generates a count-up timer
+
+  Timer that tells you how long it took to run a command.
+
+  Args:
+    start_time: Time the command started at, stored in a variable, and passed.
+    to countup().
+  """
+  end = time.time() - start_time
+  days = int(end) / 86400
+  hours = (int(end % 86400) / 3600)
+  minutes = ((int(end) % 86400) % 3600) / 60
+  seconds = int(end) % 60
+  print "%02d:%02d:%02d:%02d" % (days, hours, minutes, seconds)
 
 
 def countdown(seconds):
@@ -88,8 +109,14 @@ def countdown(seconds):
 
 
 def main():
-  mkdir(fileName)
-  adf_pull()
+  #adf_pull(devices)
+  for device in devices:
+    raw_data, adf = get_adf_list(device)
+    print raw_data
+    print adf
+  pass
+
+
 
 
 if __name__ == "__main__":
