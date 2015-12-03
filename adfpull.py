@@ -14,10 +14,25 @@ import time
 import tarfile
 
 
-country = "US" #raw_input("Country (Ex. US): ")
-state = "CA" #raw_input("State Abbreviation (Ex. CA): ")
-city = "MTV" #raw_input("City Code (Ex. MTV for Mountain View): ")
-location = "GoogleSB65" #raw_input("Collect Location (Ex. GoogleSB65): ")
+whatami = platform.system()
+
+whoami = os.popen("whoami").read().split("\n")[0]
+
+if whatami == "Linux":
+  rootpath = "/home/" + whoami
+elif whatami == "Darwin":
+  rootpath = "/Users/" + whoami
+else:
+  rootpath = None
+  print "Not compatible with Windows."
+  exit()
+
+DEFAULT_DIR = rootpath + "/Desktop"
+
+country = raw_input("Country (Ex. US): ")
+state = raw_input("State Abbreviation (Ex. CA): ")
+city = raw_input("City Code (Ex. MTV for Mountain View): ")
+location = raw_input("Collect Location (Ex. GoogleSB65): ")
 today = time.strftime("%Y%m%d")
 
 fileName = "/home/atap/" + country
@@ -26,26 +41,38 @@ fileName += "_" + city
 fileName += "_" + location
 fileName += "_" + today
 
-dev_list =
 devices = [device[0]
-           for device in [line.split("\t")
-            for line in os.popen('adb devices').read().split("\n")
-            if len(line.split("\t")) == 2]]
+          for device in [line.split("\t")
+          for line in os.popen('adb devices').read().split("\n")
+          if len(line.split("\t")) == 2]]
+
+class device_serial(object):
+  def __init__(self, devices, raw_data, adf):
+    self.devices = [device[0]
+                   for device in [line.split("\t")
+                   for line in os.popen('adb devices').read().split("\n")
+                   if len(line.split("\t")) == 2]]
 
 
 def get_adf_list(devices):
-  get_raw_adf_list = "adb -s %s shell ls data/data/com.projecttango.tangomapper/files/" % devices
-  adfs = "adb -s %s shell ls data/data/com.projecttango.tango/files/Tango/ADFs/" % devices
-  raw = [line.split("\r") for line in os.popen(get_raw_adf_list).read().split("\n") if len(line.split("\r")) == 2]
-  adflist = [line.split("\r") for line in os.popen(adfs).read().split("\n") if len(line.split("\r")) ==2]
-  if raw[0][0].endswith("No such file or directory"):
-    print  "This device, %s, has no adf's to pull." % devices
-    raw_data = None
-    adf = None
-  else:
-    raw_data = [data[0] for data in raw]
-    adf = [i[0] for i in adflist]
-  return raw_data, adf
+  for device in devices:
+    get_raw_adf_list = "adb -s %s shell ls " \
+                       "data/data/com.projecttango.tangomapper/files/" % device
+    adfs = "adb -s %s shell ls " \
+           "data/data/com.projecttango.tango/files/Tango/ADFs/" % device
+    raw = [line.split("\r") for line in
+           os.popen(get_raw_adf_list).read().split("\n")
+           if len(line.split("\r")) == 2]
+    adflist = [line.split("\r") for line in os.popen(adfs).read().split("\n")
+               if len(line.split("\r")) == 2]
+    if raw[0][0].endswith("No such file or directory"):
+      print  "This device, %s, has no adf's to pull." % device
+      raw_data = None
+      adf = None
+    else:
+      raw_data = [data[0] for data in raw]
+      adf = [i[0] for i in adflist]
+    return raw_data, adf
 
 
 def mkdir(fileName):
@@ -73,8 +100,8 @@ def adf_pull(devices):
       countup(start)
     countup(begin)
 
-def create_json():
-  with open("properties.json", 'w') as properties:
+def create_json(destination_dir=DEFAULT_DIR):
+  with open(destination_dir + "/properties.json", 'w') as properties:
     properties_file = "{\n\t\"collection_timestamp\" : \"%s %s\",\n"\
     % (str(datetime.date.today()), str(raw_input("Time of collect: "
     "(hh:mm:ss)\n")))
@@ -91,7 +118,7 @@ def create_json():
     properties_file += "\"orientation_%s\"]\n}\"" % raw_input("Orientation:\n"
     "uniform\nvaried\n")
     properties.write(properties_file)
-  with open("adf_properties.json", 'w') as adf_properties:
+  with open(destination_dir + "/adf_properties.json", 'w') as adf_properties:
     adf_json = "{\n\t\"tags\" : [\"%s\", " % \
     raw_input("Algorithm scale (select all that apply):\n"
     "\"algorithm_matching_small_scale\"\n\"algorithm_matching_medium_scale\"\n"
@@ -172,9 +199,9 @@ def main():
   #adf_pull(devices)
   for device in devices:
     raw_data, adf = get_adf_list(device)
-    print raw_data
-    print adf
-  pass
+    print "raw data:" + raw_data
+    print "adfs:" + adf
+
 
 
 
