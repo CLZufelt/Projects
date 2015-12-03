@@ -54,25 +54,25 @@ class device_serial(object):
                    if len(line.split("\t")) == 2]]
 
 
-def get_adf_list(devices):
-  for device in devices:
-    get_raw_adf_list = "adb -s %s shell ls " \
-                       "data/data/com.projecttango.tangomapper/files/" % device
-    adfs = "adb -s %s shell ls " \
-           "data/data/com.projecttango.tango/files/Tango/ADFs/" % device
-    raw = [line.split("\r") for line in
-           os.popen(get_raw_adf_list).read().split("\n")
-           if len(line.split("\r")) == 2]
-    adflist = [line.split("\r") for line in os.popen(adfs).read().split("\n")
-               if len(line.split("\r")) == 2]
-    if raw[0][0].endswith("No such file or directory"):
-      print  "This device, %s, has no adf's to pull." % device
-      raw_data = None
-      adf = None
-    else:
-      raw_data = [data[0] for data in raw]
-      adf = [i[0] for i in adflist]
-    return raw_data, adf
+def get_adf_list(device):
+  #for device in devices:
+  get_raw_adf_list = "adb -s %s shell ls " \
+                     "data/data/com.projecttango.tangomapper/files/" % device
+  adfs = "adb -s %s shell ls " \
+         "data/data/com.projecttango.tango/files/Tango/ADFs/" % device
+  raw = [line.split("\r") for line in
+         os.popen(get_raw_adf_list).read().split("\n")
+         if len(line.split("\r")) == 2]
+  adflist = [line.split("\r") for line in os.popen(adfs).read().split("\n")
+             if len(line.split("\r")) == 2]
+  if raw[0][0].endswith("No such file or directory"):
+    print  "This device, %s, has no adf's to pull." % device
+    raw_data = None
+    adf = None
+  else:
+    raw_data = [data[0] for data in raw]
+    adf = [i[0] for i in adflist]
+  return raw_data, adf
 
 
 def mkdir(fileName):
@@ -195,12 +195,18 @@ def countdown(seconds):
 
 
 
-def main():
+def main(devices=devices):
   #adf_pull(devices)
   for device in devices:
     raw_data, adf = get_adf_list(device)
-    print "raw data:" + raw_data
-    print "adfs:" + adf
+    if raw_data != None:
+      print "raw data:" + raw_data
+    else:
+      print "Now ads for this device."
+    if adf != None:
+      print "adfs:" + adf
+    else:
+      print "No adfs for this device."
 
 
 
