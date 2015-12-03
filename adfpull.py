@@ -199,8 +199,14 @@ def main(devices=devices):
   #adf_pull(devices)
   for device in devices:
     raw_data, adf = get_adf_list(device)
-    print "raw data:" + raw_data
-    print "adfs:" + adf
+    if raw_data != None:
+      print "raw data:" + raw_data
+    else:
+      print "Now ads for this device."
+    if adf != None:
+      print "adfs:" + adf
+    else:
+      print "No adfs for this device."
 
 
 
