@@ -5,7 +5,6 @@
 
 import argparse
 import datetime
-import glob
 import os
 import platform
 import subprocess
@@ -13,6 +12,12 @@ import sys
 import time
 import tarfile
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--json", action='store_true',
+                    default=False, dest='json',
+                    help='Use if you need to change the json files from default.')
+argParser = parser.parse_args()
 
 whatami = platform.system()
 
@@ -33,13 +38,13 @@ country = raw_input("Country (Ex. US): ")
 state = raw_input("State Abbreviation (Ex. CA): ")
 city = raw_input("City Code (Ex. MTV for Mountain View): ")
 location = raw_input("Collect Location (Ex. GoogleSB65): ")
-today = time.strftime("%Y%m%d")
+date = time.strftime("%Y%m%d")
 
-fileName = "/home/atap/" + country
-fileName += "_" + state
-fileName += "_" + city
-fileName += "_" + location
-fileName += "_" + today
+dest_dir = "/home/atap/" + country
+dest_dir += "_" + state
+dest_dir += "_" + city
+dest_dir += "_" + location
+dest_dir += "_" + date
 
 devices = [device[0]
           for device in [line.split("\t")
@@ -55,7 +60,6 @@ class device_serial(object):
 
 
 def get_adf_list(device):
-  #for device in devices:
   get_raw_adf_list = "adb -s %s shell ls " \
                      "data/data/com.projecttango.tangomapper/files/" % device
   adfs = "adb -s %s shell ls " \
@@ -75,17 +79,9 @@ def get_adf_list(device):
   return raw_data, adf
 
 
-def mkdir(fileName):
-  if os.path.exists(fileName + "_01"):
-    for x in range(2, 11):
-      if not os.path.exists(fileName + "_%02d" % x):
-        os.system("mkdir " + fileName + "_%02d" % x)
-        fileName += "_%02d" % x
-        break
-  else:
-    os.system("mkdir " + fileName + "_01")
-    fileName += "_01"
-  return fileName
+def mkdir(dest_dir):
+  if not os.path.exists(dest_dir):
+    os.system("mkdir " + dest_dir)
 
 def adf_pull(devices):
   for device in devices:
@@ -95,58 +91,77 @@ def adf_pull(devices):
       time.sleep(5)
       start = time.time()
       pull_from = "data/data/com.projecttango.tangomapper/files/" + data
-      os.system("adb -s %s pull %s %s" % (device, pull_from, mkdir(fileName)))
-      print "The pull took: "
-      countup(start)
+      os.system("adb -s %s pull %s %s" % (device, pull_from, mkdir(dest_dir)))
+      print "The pull took: %s" % countup(start)
     countup(begin)
 
 def create_json(destination_dir=DEFAULT_DIR):
-  with open(destination_dir + "/properties.json", 'w') as properties:
-    properties_file = "{\n\t\"collection_timestamp\" : \"%s %s\",\n"\
-    % (str(datetime.date.today()), str(raw_input("Time of collect: "
-    "(hh:mm:ss)\n")))
-    properties_file += "\ntags\n\" : [\"collection_method_%s\", " \
-    % raw_input("Collection method:\nhandheld\nheadset\n")
-    properties_file += "\"lighting_%s\", " % raw_input("Lighting type:\n"
-    "varied\nstore\ndim\noutdoors_sunny\noutdoors_overcast"
-    "\nhouse_dim\nhouse_bright\n")
-    properties_file += "\"tilt_%s\", " % raw_input("Tilt:\n"
-    "vertical\ntilted\nhorizontal\nvaried\n")
-    properties_file += "\"layout_%s\", " % raw_input("Layout type:\n"
-    "portrait\nlandscape\nportrait_and_landscape\n")
-    properties_file += "device_yellowstone, "
-    properties_file += "\"orientation_%s\"]\n}\"" % raw_input("Orientation:\n"
-    "uniform\nvaried\n")
-    properties.write(properties_file)
-  with open(destination_dir + "/adf_properties.json", 'w') as adf_properties:
-    adf_json = "{\n\t\"tags\" : [\"%s\", " % \
-    raw_input("Algorithm scale (select all that apply):\n"
-    "\"algorithm_matching_small_scale\"\n\"algorithm_matching_medium_scale\"\n"
-    "\"algorithm_matching_large_scale\"\n\"algorithm_retrieval_small_scale\"\n"
-    "\"algorithm_retrieval_medium_scale\"\n"
-    "\"algorithm_retrieval_large_scale\"\n")
-    adf_json += "\"construction_%s\", " % raw_input("Construction type:\n"
-    "pose_graph\nVIWLS\npose_graph_with_structure\n")
-    adf_json += "\"floor_%s\", " % raw_input("Floors:\nmultiple\nsingle\n")
-    adf_json += "\"compression_%s\", " % raw_input("Compression type:\n"
-    "none\npq\n")
-    adf_json += "\"%s\", " % raw_input("Summarization:\n"
-    "summarization_none\nkeyframe_pruning_every_2nd\n"
-    "summarization_observation_count\n")
-    adf_json += "\"area_%s\", " % raw_input("Area:\nindoors\noutdoors\n"
-    "indoors_and_outdoors\n")
-    adf_json += "\"collection_method_%s\", " % raw_input("Collection method:"
-    "\nhandheld\nheadset\n")
-    adf_json += "\"lighting_%s\", " % raw_input("Lighting type:\n"
-    "varied\nstore\ndim\noutdoors_sunny\noutdoors_overcast"
-    "\nhouse_natural_dim\nhouse_natural_overcast"
-    "\nhouse_dim\nhouse_bright\n")
-    adf_json += "\"tilt_%s\", " % raw_input("Tilt:\n"
-    "vertical\ntilted\nhorizontal\nvaried\n")
-    adf_json += "\"layout_%s\", " % raw_input("Layout type:\n"
-    "portrait\nlandscape\nportrait_and_landscape\n")
-    adf_json += "\"device_%s\"]\n}" % raw_input("Device:\nyellowstone\n")
-    adf_properties.write(adf_json)
+  if argParser.json:
+    with open(destination_dir + "/properties.json", 'w') as properties:
+      properties_file = "{\n\t\"collection_timestamp\" : \"%s %s\",\n"\
+      % (str(datetime.date.today()), str(raw_input("Time of collect: "
+      "(hh:mm:ss)\n")))
+      properties_file += "\n\t\"tags\"\n\" : [\"collection_method_%s\", " \
+      % raw_input("Collection method:\nhandheld\nheadset\n")
+      properties_file += "\"lighting_%s\", " % raw_input("Lighting type:\n"
+      "varied\nstore\ndim\noutdoors_sunny\noutdoors_overcast"
+      "\nhouse_dim\nhouse_bright\n")
+      properties_file += "\n\t\t\"tilt_%s\", " % raw_input("Tilt:\n"
+      "vertical\ntilted\nhorizontal\nvaried\n")
+      properties_file += "\"layout_%s\", " % raw_input("Layout type:\n"
+      "portrait\nlandscape\nportrait_and_landscape\n")
+      properties_file += "\"device_yellowstone\", "
+      properties_file += "\n\t\t\"orientation_%s\"]\n}\"" \
+      % raw_input("Orientation:\nuniform\nvaried\n")
+      properties.write(properties_file)
+    with open(destination_dir + "/adf_properties.json", 'w') as adf_properties:
+      adf_json = "{\n\t\"tags\" : [\"%s\", " % \
+      raw_input("Algorithm scale (select all that apply):\n"
+      "\"algorithm_matching_small_scale\"\n"
+      "\"algorithm_matching_medium_scale\"\n"
+      "\"algorithm_matching_large_scale\"\n"
+      "\"algorithm_retrieval_small_scale\"\n"
+      "\"algorithm_retrieval_medium_scale\"\n"
+      "\"algorithm_retrieval_large_scale\"\n")
+      adf_json += "\"construction_%s\", " % raw_input("Construction type:\n"
+      "pose_graph\nVIWLS\npose_graph_with_structure\n")
+      adf_json += "\"floor_%s\", " % raw_input("Floors:\nmultiple\nsingle\n")
+      adf_json += "\"compression_%s\", " % raw_input("Compression type:\n"
+      "none\npq\n")
+      adf_json += "\"%s\", " % raw_input("Summarization:\n"
+      "summarization_none\nkeyframe_pruning_every_2nd\n"
+      "summarization_observation_count\n")
+      adf_json += "\"area_%s\", " % raw_input("Area:\nindoors\noutdoors\n"
+      "indoors_and_outdoors\n")
+      adf_json += "\"collection_method_%s\", " % raw_input("Collection method:"
+      "\nhandheld\nheadset\n")
+      adf_json += "\"lighting_%s\", " % raw_input("Lighting type:\n"
+      "varied\nstore\ndim\noutdoors_sunny\noutdoors_overcast"
+      "\nhouse_natural_dim\nhouse_natural_overcast"
+      "\nhouse_dim\nhouse_bright\n")
+      adf_json += "\"tilt_%s\", " % raw_input("Tilt:\n"
+      "vertical\ntilted\nhorizontal\nvaried\n")
+      adf_json += "\"layout_%s\", " % raw_input("Layout type:\n"
+      "portrait\nlandscape\nportrait_and_landscape\n")
+      adf_json += "\"device_%s\"]\n}" % raw_input("Device:\nyellowstone\n")
+      adf_properties.write(adf_json)
+  else:
+    with open(destination_dir + "/properties.json", 'w') as properties:
+      properties_file = "{\n\t\"collection_timestamp\" : \"%s %s\",\n"\
+      % (str(raw_input("Date of collect: \n")),
+         str(raw_input("Time of collect: \n")))
+      properties_file += "\t\"tags\" : [\"collection_method_handheld\", " \
+      "\"lighting_store\",\n\t\t\"tilt_tilted\", \"layout_landscape\", " \
+      "\"device_yellowstone\", \n\t\t\"orientation_uniform\"]\n}"
+      properties.write(properties_file)
+    with open(destination_dir + "/adf_properties.json", 'w') as adf_properties:
+      adf_json = "{\n\t\"tags\" : [\"algorithm_matching_medium_scale\", " \
+      "\"construction_VIWLS\", \"floor_single\", \"compression_none\", " \
+      "\"summarization_none\", \"area_indoors\", " \
+      "\"collection_method_handheld\", \"lighting_store\", \"tilt_tilted\", " \
+      "\"layout_landscape\", \"device_yellowstone\"]\n}"
+      adf_properties.write(adf_json)
+
 
 def compress_files(destination, source_dir):
   with tarfile.open(destination, "w:gz") as tar:
@@ -192,22 +207,9 @@ def countdown(seconds):
     time.sleep(1)
 
 
-
-
-
 def main(devices=devices):
   #adf_pull(devices)
-  for device in devices:
-    raw_data, adf = get_adf_list(device)
-    if raw_data != None:
-      print "raw data:" + raw_data
-    else:
-      print "Now ads for this device."
-    if adf != None:
-      print "adfs:" + adf
-    else:
-      print "No adfs for this device."
-
+  create_json()
 
 
 
