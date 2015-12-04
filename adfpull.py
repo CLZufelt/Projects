@@ -147,15 +147,15 @@ def create_json(destination_dir=DEFAULT_DIR):
       adf_properties.write(adf_json)
   else:
     with open(destination_dir + "/properties.json", 'w') as properties:
-      properties_file = "{\n\t\"collection_timestamp\" : \"%s %s\",\n"\
+      properties_file = "{\n    \"collection_timestamp\" : \"%s %s\",\n"\
       % (str(raw_input("Date of collect: \n")),
          str(raw_input("Time of collect: \n")))
-      properties_file += "\t\"tags\" : [\"collection_method_handheld\", " \
-      "\"lighting_store\",\n\t\t\"tilt_tilted\", \"layout_landscape\", " \
-      "\"device_yellowstone\", \n\t\t\"orientation_uniform\"]\n}"
+      properties_file += "    \"tags\" : [\"collection_method_handheld\", " \
+      "\"lighting_store\",\n\t\"tilt_tilted\", \"layout_landscape\", " \
+      "\"device_yellowstone\", \n\t\"orientation_uniform\"]\n}"
       properties.write(properties_file)
     with open(destination_dir + "/adf_properties.json", 'w') as adf_properties:
-      adf_json = "{\n\t\"tags\" : [\"algorithm_matching_medium_scale\", " \
+      adf_json = "{\n    \"tags\" : [\"algorithm_matching_medium_scale\", " \
       "\"construction_VIWLS\", \"floor_single\", \"compression_none\", " \
       "\"summarization_none\", \"area_indoors\", " \
       "\"collection_method_handheld\", \"lighting_store\", \"tilt_tilted\", " \
