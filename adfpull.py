@@ -35,10 +35,10 @@ else:
 
 DEFAULT_DIR = rootpath + "/Desktop"
 
-country = raw_input("Country (Ex. US): ")
-state = raw_input("State Abbreviation (Ex. CA): ")
-city = raw_input("City Code (Ex. MTV for Mountain View): ")
-location = raw_input("Collect Location (Ex. GoogleSB65): ")
+country = "US" #raw_input("Country (Ex. US): ")
+state = "CA" #raw_input("State Abbreviation (Ex. CA): ")
+city = "Mountain View" #raw_input("City Code (Ex. MTV for Mountain View): ")
+location = "GoogleSB65" #raw_input("Collect Location (Ex. GoogleSB65): ")
 date = time.strftime("%Y%m%d")
 
 dest_dir = "/home/atap/" + country
@@ -199,11 +199,13 @@ def countdown(seconds):
 
 def main(devices=devices):
   #adf_pull(devices)
-  raw_data, adf = get_adf_list(devices)
-  for data in range(len(raw_data) - 1):
-    print "%04d%02d%04d" % (int(raw_data[data][0:4]),
-                            int(list(calendar.month_abbr).index(raw_data[data][4:7])),
-                            int(raw_data[data].split("_")[1][0:4]))
+  for i in devices:
+    print "Device serial number: %s" % i
+    raw_data, adf = get_adf_list(i)
+    for data in range(len(raw_data) - 1):
+      print "%04d%02d%04d" % (int(raw_data[data][0:4]),
+             int(list(calendar.month_abbr).index(raw_data[data][4:7])),
+             int(raw_data[data].split("_")[1][0:4]))
 
 
 if __name__ == "__main__":
