@@ -4,6 +4,7 @@
 # Trademark Google Inc., all rights reserved
 
 import argparse
+import calendar
 import datetime
 import os
 import platform
@@ -51,31 +52,20 @@ devices = [device[0]
           for line in os.popen('adb devices').read().split("\n")
           if len(line.split("\t")) == 2]]
 
-class device_serial(object):
-  def __init__(self, devices, raw_data, adf):
-    self.devices = [device[0]
-                   for device in [line.split("\t")
-                   for line in os.popen('adb devices').read().split("\n")
-                   if len(line.split("\t")) == 2]]
-
 
 def get_adf_list(device):
   get_raw_adf_list = "adb -s %s shell ls " \
                      "data/data/com.projecttango.tangomapper/files/" % device
   adfs = "adb -s %s shell ls " \
          "data/data/com.projecttango.tango/files/Tango/ADFs/" % device
-  raw = [line.split("\r") for line in
+  raw_data = [line.split("\r")[0] for line in
          os.popen(get_raw_adf_list).read().split("\n")
          if len(line.split("\r")) == 2]
-  adflist = [line.split("\r") for line in os.popen(adfs).read().split("\n")
+  adf = [line.split("\r")[0] for line in os.popen(adfs).read().split("\n")
              if len(line.split("\r")) == 2]
-  if raw[0][0].endswith("No such file or directory"):
-    print  "This device, %s, has no adf's to pull." % device
-    raw_data = None
-    adf = None
-  else:
-    raw_data = [data[0] for data in raw]
-    adf = [i[0] for i in adflist]
+  for i in raw_data:
+    if i.endswith("No such file or directory"):
+      print  "This device, %s, has no adf's to pull." % device
   return raw_data, adf
 
 
@@ -166,11 +156,11 @@ def create_json(destination_dir=DEFAULT_DIR):
 def compress_files(destination, source_dir):
   with tarfile.open(destination, "w:gz") as tar:
     tar.add(source_dir, arcname=os.path.basename(source_dir))
+    return destination
 
-def upload():
-  pass
-
-
+def upload(destination, source_dir=dest_dir):
+  push_destination = "gs://project-tango-internal-data/" + destination
+  subprocess.call(["gsutil", "cp", "-r", source_dir, push_destination])
 
 
 def countup(start_time):
@@ -209,9 +199,11 @@ def countdown(seconds):
 
 def main(devices=devices):
   #adf_pull(devices)
-  create_json()
-
-
+  raw_data, adf = get_adf_list(devices)
+  for data in range(len(raw_data) - 1):
+    print "%04d%02d%04d" % (int(raw_data[data][0:4]),
+                            int(list(calendar.month_abbr).index(raw_data[data][4:7])),
+                            int(raw_data[data].split("_")[1][0:4]))
 
 
 if __name__ == "__main__":
