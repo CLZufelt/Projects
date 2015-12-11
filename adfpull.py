@@ -203,10 +203,10 @@ def main(devices=devices):
     print "Device serial number: %s" % i
     raw_data, adf = get_adf_list(i)
     for data in range(len(raw_data) - 1):
-      print "%04d%02d%04d" % (int(raw_data[data][0:4]),
+      datetime_stamp = ["%04d%02d%04d" % (int(raw_data[data][0:4]),
              int(list(calendar.month_abbr).index(raw_data[data][4:7])),
-             int(raw_data[data].split("_")[1][0:4]))
-
+             int(raw_data[data].split("_")[1][0:4]))]
+      print datetime_stamp
 
 if __name__ == "__main__":
   main()
