@@ -17,6 +17,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-build', action='store_true',
                     default=False, dest='user_build',
                     help='Set user build or user debug. Default user debug.')
+parser.add_argument('-unlock', action='store_true',
+                    default=False, dest='unlock',
+                    help='Use this option to unlock devices before flashing.')
 parser.add_argument('-f', action='store_true',
                     default= False, dest='flash_device',
                     help='Do not flash device(s).')
@@ -34,7 +37,7 @@ parser.add_argument('-c', action='store_true',
                     help='Installs TangoCore and no apps.')
 parser.add_argument('-s', action='store', nargs="*",
                     dest='serial_number',
-                    help='Set serial number for flashing and installing apps.')
+                    help='Serial number for specific device or devices.')
 parser.add_argument('-v | --version', action='store_true',
                     default= False, dest='version_info',
                     help='Display version information, and nothing else.')
@@ -79,22 +82,21 @@ appUnzipPath = appDatePath + "/Apps/"
 
 zipFilePath = downloads + "*.zip"
 
-deviceList = []
 # Creates a list with the device serial numbers.
-for line in os.popen('adb devices').read().split("\n"):
-  device = line.split("\t")
-  if len(device) == 2:
-    deviceList.append(device[0])
+devices = [[device[0]
+          for device in [line.split("\t")
+          for line in os.popen('adb devices').read().split("\n")
+          if len(line.split("\t")) == 2]]]
+
 if argParser.serial_number:
-  deviceList = argParser.serial_number
+  devices = argParser.serial_number
 
 
-def remount(devices):
+def unlock(devices=devices):
   for device in devices:
     subprocess.call(['adb', '-s', device, 'reboot', 'bootloader'])
     time.sleep(1)
     subprocess.call(['fastboot', '-s', device, 'oem', 'unlock'])
-    time.sleep(5)
 
 def countdown(seconds):
   """Generates a countdown timer
@@ -190,7 +192,7 @@ def appFile():
         zipPath("Apps", appDatePath)
   rename()
 
-def flashDevices(userBSP):
+def flashDevices(userBSP, devices=devices):
   """Flashes devices by serial number.
 
   Select device by serial number, and run through the commands
@@ -201,14 +203,15 @@ def flashDevices(userBSP):
   """
   if not argParser.flash_device:
     imagePath = userBSP
-    lastDevice = len(deviceList) -1
-    for serial in deviceList:
+    lastDevice = len(devices) -1
+    if argParser.unlock:
+      unlock(devices)
+    for serial in devices:
       print "Flashing %s ..." % serial
       subprocess.check_call(["adb", "-s", serial, "reboot", "bootloader"])
-      time.sleep(2)
+      time.sleep(1)
       subprocess.check_call(["fastboot", "-s", serial, "flash",
                   "bootloader", imagePath + "/bootloader.bin"])
-      time.sleep(1)
       subprocess.check_call(["fastboot", "-s", serial, "flash", "dtb",
                   imagePath + "/tegra124-ardbeg.dtb"])
       subprocess.check_call(["fastboot", "-s", serial, "flash", "boot",
@@ -221,7 +224,7 @@ def flashDevices(userBSP):
       subprocess.check_call(["fastboot", "-s", serial, "reboot"])
       print "-"*25 + "Flash Finished for device " + serial + "-"*25
       print "Device will now reboot. This takes about 4 minutes."
-      if serial == deviceList[lastDevice]:
+      if serial == devices[lastDevice]:
         countdown(245)
 
 def installApks(datePath, unzipPath):
@@ -234,9 +237,9 @@ def installApks(datePath, unzipPath):
     datePath: Path to Apps and TangoCore.
     unzipPath: Path to apks.
   """
-  lastDevice = len(deviceList) -1
+  lastDevice = len(devices) -1
   if not argParser.push_apps:
-    for device in deviceList:
+    for device in devices:
       print "Installing TangoCore..."
       if os.path.exists(datePath + "/SingleTangoFiles"):
         os.system("adb -s %s install -r %s" %
@@ -250,7 +253,7 @@ def installApks(datePath, unzipPath):
           os.system("adb -s %s install -r %s" % (device, app))
       print "Rebooting device. This takes about 45 seconds..."
       os.system("adb -s %s reboot" % device)
-      if device == deviceList[lastDevice]:
+      if device == devices[lastDevice]:
         countdown(45)
 
 def rename():
@@ -290,7 +293,8 @@ def chrono():
   bsplist = [x for x in glob.glob(bspPath + "*") if x.endswith(include)]
   for i in range(len(bsplist)):
     datelist.append(
-      bsplist[i][bsplist[i].find("1"):bsplist[i].find(("-"), bsplist[i].find("1"))])
+      bsplist[i][bsplist[i].find("1"):bsplist[i].find(("-"),
+              bsplist[i].find("1"))])
   datelist = sorted(datelist)
   for item in datelist:
     if item == max(datelist):
@@ -306,7 +310,6 @@ def main():
   flashDevices(bspPath + chrono())
   installApks(appDatePath, appUnzipPath)
   cleanup()
-  #remount(deviceList)
 
 
 if __name__ == "__main__":
