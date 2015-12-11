@@ -97,6 +97,7 @@ def unlock(devices=devices):
     subprocess.call(['adb', '-s', device, 'reboot', 'bootloader'])
     time.sleep(1)
     subprocess.call(['fastboot', '-s', device, 'oem', 'unlock'])
+    time.sleep(3)
 
 def countdown(seconds):
   """Generates a countdown timer

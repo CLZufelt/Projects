@@ -17,7 +17,7 @@ import tarfile
 parser = argparse.ArgumentParser()
 parser.add_argument("--json", action='store_true',
                     default=False, dest='json',
-                    help='Use to change the json files from default.')
+                    help='Change the json files from default.')
 argParser = parser.parse_args()
 
 whatami = platform.system()
@@ -68,6 +68,15 @@ def get_adf_list(device):
       print  "This device, %s, has no adf's to pull." % device
   return raw_data, adf
 
+def datetime_stamps(devices=devices):
+  for i in devices:
+    print "Device serial number: %s" % i
+    raw_data, adf = get_adf_list(i)
+    for data in range(len(raw_data) - 1):
+      datetime_stamp = ["%04d%02d%04d" % (int(raw_data[data][0:4]),
+             int(list(calendar.month_abbr).index(raw_data[data][4:7])),
+             int(raw_data[data].split("_")[1][0:4]))]
+      print datetime_stamp
 
 def mkdir(dest_dir):
   if not os.path.exists(dest_dir):
@@ -198,15 +207,8 @@ def countdown(seconds):
 
 
 def main(devices=devices):
-  #adf_pull(devices)
-  for i in devices:
-    print "Device serial number: %s" % i
-    raw_data, adf = get_adf_list(i)
-    for data in range(len(raw_data) - 1):
-      datetime_stamp = ["%04d%02d%04d" % (int(raw_data[data][0:4]),
-             int(list(calendar.month_abbr).index(raw_data[data][4:7])),
-             int(raw_data[data].split("_")[1][0:4]))]
-      print datetime_stamp
+  datetime_stamps()
+
 
 if __name__ == "__main__":
   main()
