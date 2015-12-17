@@ -53,11 +53,11 @@ devices = [device[0]
           if len(line.split("\t")) == 2]]
 
 
-def get_adf_list(device):
+def get_adf_list(serial):
   get_raw_adf_list = "adb -s %s shell ls " \
-                     "data/data/com.projecttango.tangomapper/files/" % device
+                     "data/data/com.projecttango.tangomapper/files/" % serial
   adfs = "adb -s %s shell ls " \
-         "data/data/com.projecttango.tango/files/Tango/ADFs/" % device
+         "data/data/com.projecttango.tango/files/Tango/ADFs/" % serial
   raw_data = [line.split("\r")[0] for line in
          os.popen(get_raw_adf_list).read().split("\n")
          if len(line.split("\r")) == 2]
@@ -65,7 +65,7 @@ def get_adf_list(device):
              if len(line.split("\r")) == 2]
   for i in raw_data:
     if i.endswith("No such file or directory"):
-      print  "This device, %s, has no adf's to pull." % device
+      print  "This device, %s, has no adf's to pull." % serial
   return raw_data, adf
 
 def datetime_stamps(devices=devices):
@@ -73,8 +73,9 @@ def datetime_stamps(devices=devices):
     print "Device serial number: %s" % i
     raw_data, adf = get_adf_list(i)
     for data in range(len(raw_data) - 1):
-      datetime_stamp = ["%04d%02d%04d" % (int(raw_data[data][0:4]),
+      datetime_stamp = ["%04d%02d%02d%04d" % (int(raw_data[data][0:4]),
              int(list(calendar.month_abbr).index(raw_data[data][4:7])),
+             int(raw_data[data][7:9]),
              int(raw_data[data].split("_")[1][0:4]))]
       print datetime_stamp
 
@@ -207,6 +208,8 @@ def countdown(seconds):
 
 
 def main(devices=devices):
+  for device in devices:
+    print get_adf_list(device)
   datetime_stamps()
 
 
