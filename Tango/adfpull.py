@@ -33,14 +33,14 @@ else:
   print "Not compatible with Windows."
   exit()
 
-DEFAULT_DIR = rootpath + "/Desktop"
+root_dir = rootpath + "/Desktop/"
 
 country = "US" #raw_input("Country (Ex. US): ")
 state = "CA" #raw_input("State Abbreviation (Ex. CA): ")
-city = "Mountain View" #raw_input("City Code (Ex. MTV for Mountain View): ")
+city = "MountainView" #raw_input("City Code (Ex. MTV for Mountain View): ")
 location = "GoogleSB65" #raw_input("Collect Location (Ex. GoogleSB65): ")
 
-dest_dir = "/home/atap/" + country
+dest_dir = country
 dest_dir += "_" + state
 dest_dir += "_" + city
 dest_dir += "_" + location
@@ -50,6 +50,22 @@ devices = [device[0]
           for line in os.popen('adb devices').read().split("\n")
           if len(line.split("\t")) == 2]]
 
+
+def countup(start_time):
+  """Generates a count-up timer
+
+  Timer that tells you how long it took to run a command.
+
+  Args:
+    start_time: Time the command started at, stored in a variable, and passed.
+    to countup().
+  """
+  end = time.time() - start_time
+  days = int(end) / 86400
+  hours = (int(end % 86400) / 3600)
+  minutes = ((int(end) % 86400) % 3600) / 60
+  seconds = int(end) % 60
+  print "%02d:%02d:%02d:%02d" % (days, hours, minutes, seconds)
 
 def raw_data_files(serial):
   get_raw_data = "adb -s %s shell ls " \
@@ -65,34 +81,36 @@ def raw_data_files(serial):
       print  "This device, %s, has no adf's to pull." % serial
   return raw_data
 
-def datetime_stamps(devices=devices):
-  for serial in devices:
-    print "Device serial number: %s" % serial
-    raw_data = raw_data_files(serial)
-    for data in range(len(raw_data)):
-      datetime_stamp = ["%04d%02d%02d%04d" % (int(raw_data[data][0:4]),
-             int(list(calendar.month_abbr).index(raw_data[data][4:7])),
-             int(raw_data[data][7:9]),
-             int(raw_data[data].split("_")[1][0:4]))]
-      print datetime_stamp
+def datetime_stamps(raw_data):
+  data = raw_data
+  datetime_stamp = "%04d%02d%02d_%04d" % (int(data[0:4]),
+         int(list(calendar.month_abbr).index(data[4:7])),
+         int(data[7:9]),
+         int([str(data)][0].split("_")[1][0:4]))
+  return datetime_stamp
 
-def mkdir(dest_dir):
-  if not os.path.exists(dest_dir):
-    os.system("mkdir " + dest_dir)
+def mkdir(datetime, destination_dir=root_dir+dest_dir):
+  #print datetime_stamps(device)
+  destination_dir += "_" + datetime #datetime_stamps(device)[0]
+  if not os.path.exists(destination_dir):
+    os.system("mkdir " + destination_dir)
+  return str(destination_dir)
 
-def adf_pull(devices):
+def adf_pull(devices=devices):
   for device in devices:
     raw_data = raw_data_files(device)
     begin = time.time()
     for data in raw_data:
-      time.sleep(5)
+      destination_dir = mkdir(datetime_stamps(data))
       start = time.time()
       pull_from = "data/data/com.projecttango.tangomapper/files/" + data
-      os.system("adb -s %s pull %s %s" % (device, pull_from, mkdir(dest_dir)))
+      os.system("adb -s %s pull %s %s" % (device, pull_from, dest_dir +
+                                          destination_dir))
       print "The pull took: %s" % countup(start)
+      create_json(destination_dir)
     countup(begin)
 
-def create_json(destination_dir=DEFAULT_DIR):
+def create_json(data, destination_dir=root_dir):
   if argParser.json:
     with open(destination_dir + "/properties.json", 'w') as properties:
       properties_file = "{\n\t\"collection_timestamp\" : \"%s %s\",\n"\
@@ -145,8 +163,12 @@ def create_json(destination_dir=DEFAULT_DIR):
   else:
     with open(destination_dir + "/properties.json", 'w') as properties:
       properties_file = "{\n    \"collection_timestamp\" : \"%s %s\",\n"\
-      % (str(raw_input("Date of collect: \n")),
-         str(raw_input("Time of collect: \n")))
+      % ('%04d-%02d-%02d' % (int(data[0:4]),
+                              int(list(calendar.month_abbr).index(data[4:7])),
+                              int(data[7:9])),
+         str('%02d:%02d:%02d' % (int([str(data)][0].split("_")[1][0:2]),
+                                 int([str(data)][0].split("_")[1][2:4]),
+                                 int([str(data)][0].split("_")[1][4:]))))
       properties_file += "    \"tags\" : [\"collection_method_handheld\", " \
       "\"lighting_store\",\n\t\"tilt_tilted\", \"layout_landscape\", " \
       "\"device_yellowstone\", \n\t\"orientation_uniform\"]\n}"
@@ -159,7 +181,6 @@ def create_json(destination_dir=DEFAULT_DIR):
       "\"layout_landscape\", \"device_yellowstone\"]\n}"
       adf_properties.write(adf_json)
 
-
 def compress_files(destination, source_dir):
   with tarfile.open(destination, "w:gz") as tar:
     tar.add(source_dir, arcname=os.path.basename(source_dir))
@@ -169,46 +190,10 @@ def upload(destination, source_dir=dest_dir):
   push_destination = "gs://project-tango-internal-data/" + destination
   subprocess.call(["gsutil", "cp", "-r", source_dir, push_destination])
 
-
-def countup(start_time):
-  """Generates a count-up timer
-
-  Timer that tells you how long it took to run a command.
-
-  Args:
-    start_time: Time the command started at, stored in a variable, and passed.
-    to countup().
-  """
-  end = time.time() - start_time
-  days = int(end) / 86400
-  hours = (int(end % 86400) / 3600)
-  minutes = ((int(end) % 86400) % 3600) / 60
-  seconds = int(end) % 60
-  print "%02d:%02d:%02d:%02d" % (days, hours, minutes, seconds)
-
-
-def countdown(seconds):
-  """Generates a countdown timer
-
-  Countdown timer continuously overwrites previous output, after flushing
-  the standard out.
-
-  Args:
-    seconds: A pre-determined length of time in seconds.
-  """
-  for count in range(seconds, -1, -1):
-    minute, second = divmod(count, 60)
-    sys.stdout.write("Time remaining: " \
-                     + "%02d:%02d" % (minute, second) + "\r" ,)
-    sys.stdout.flush()
-    time.sleep(1)
-
-
 def main(devices=devices):
-  for device in devices:
-    print raw_data_files(device)
-  datetime_stamps()
-
+  adf_pull()
+  #compress_files()
+  #upload()
 
 if __name__ == "__main__":
   main()
