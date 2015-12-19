@@ -18,6 +18,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--json", action='store_true',
                     default=False, dest='json',
                     help='Change the json files from default.')
+parser.add_argument("-c", action='store_true',
+                    default=False, dest='compress',
+                    help='Don\'t compress into a tarball.')
+parser.add_argument("-u", action='store_true',
+                    default=False, dest='upload',
+                    help='Don\'t upload.')
 argParser = parser.parse_args()
 
 whatami = platform.system()
@@ -35,20 +41,21 @@ else:
 
 root_dir = rootpath + "/Desktop/"
 
-country = "US" #raw_input("Country (Ex. US): ")
-state = "CA" #raw_input("State Abbreviation (Ex. CA): ")
-city = "MountainView" #raw_input("City Code (Ex. MTV for Mountain View): ")
-location = "GoogleSB65" #raw_input("Collect Location (Ex. GoogleSB65): ")
+country = "US"  #raw_input("Country (Ex. US): ")
+state = "CA"  #raw_input("State Abbreviation (Ex. CA): ")
+city = "MountainView"  #raw_input("City Code (Ex. MTV for Mountain View): ")
+location = "GoogleSB65"  #raw_input("Collect Location (Ex. GoogleSB65): ")
 
 dest_dir = country
 dest_dir += "_" + state
 dest_dir += "_" + city
 dest_dir += "_" + location
+dest_dir += "/" + dest_dir
 
 devices = [device[0]
-          for device in [line.split("\t")
-          for line in os.popen('adb devices').read().split("\n")
-          if len(line.split("\t")) == 2]]
+           for device in [line.split("\t")
+           for line in os.popen('adb devices').read().split("\n")
+           if len(line.split("\t")) == 2]]
 
 
 def countup(start_time):
@@ -81,6 +88,20 @@ def raw_data_files(serial):
       print  "This device, %s, has no adf's to pull." % serial
   return raw_data
 
+def adfs(serial):
+  get_adfs = "adb -s %s shell ls " \
+              "data/data/com.projecttango.tango/files/Tango/ADFs/" % serial
+  adfs = [line.split("\r")[0] for line in
+          os.popen(get_adfs).read().split("\n")
+          if len(line.split("\r")) == 2]
+  for i in adfs:
+    if "opendir failed, Permission denied" in i:
+      subprocess.call("abd", "-s", serial, "root")
+      subprocess.call("abd", "-s", serial, "remount")
+    if i.endswith("No such file or directory"):
+      return "This device, %s, has no adf's to pull." % serial
+  return adfs
+
 def datetime_stamps(raw_data):
   data = raw_data
   datetime_stamp = "%04d%02d%02d_%04d" % (int(data[0:4]),
@@ -90,8 +111,7 @@ def datetime_stamps(raw_data):
   return datetime_stamp
 
 def mkdir(datetime, destination_dir=root_dir+dest_dir):
-  #print datetime_stamps(device)
-  destination_dir += "_" + datetime #datetime_stamps(device)[0]
+  destination_dir += "_" + datetime
   if not os.path.exists(destination_dir):
     os.system("mkdir " + destination_dir)
   return str(destination_dir)
@@ -104,11 +124,10 @@ def adf_pull(devices=devices):
       destination_dir = mkdir(datetime_stamps(data))
       start = time.time()
       pull_from = "data/data/com.projecttango.tangomapper/files/" + data
-      os.system("adb -s %s pull %s %s" % (device, pull_from, dest_dir +
-                                          destination_dir))
+      os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
       print "The pull took: %s" % countup(start)
-      create_json(destination_dir)
-    countup(begin)
+      create_json(data, destination_dir)
+    print "Pull from all devices took: %s" % countup(begin)
 
 def create_json(data, destination_dir=root_dir):
   if argParser.json:
@@ -161,6 +180,8 @@ def create_json(data, destination_dir=root_dir):
       adf_json += "\"device_%s\"]\n}" % raw_input("Device:\nyellowstone\n")
       adf_properties.write(adf_json)
   else:
+    print "This is the data", data
+    print destination_dir
     with open(destination_dir + "/properties.json", 'w') as properties:
       properties_file = "{\n    \"collection_timestamp\" : \"%s %s\",\n"\
       % ('%04d-%02d-%02d' % (int(data[0:4]),
@@ -182,7 +203,7 @@ def create_json(data, destination_dir=root_dir):
       adf_properties.write(adf_json)
 
 def compress_files(destination, source_dir):
-  with tarfile.open(destination, "w:gz") as tar:
+  with tarfile.open(destination + "tar.gz", "w:gz") as tar:
     tar.add(source_dir, arcname=os.path.basename(source_dir))
     return destination
 
@@ -192,7 +213,7 @@ def upload(destination, source_dir=dest_dir):
 
 def main(devices=devices):
   adf_pull()
-  #compress_files()
+  #compress_files(root_dir + dest_dir, root_dir + dest_dir)
   #upload()
 
 if __name__ == "__main__":

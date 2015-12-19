@@ -6,6 +6,17 @@
 import os
 import subprocess
 import time
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--on", action='store_true',
+                    default=False, dest='power_on',
+										help='Toggle device power on.')
+parser.add_argument("--off", action='store_true',
+                    default=False, dest='power_off',
+										help='Toggle device power off.')
+argParser = parser.parse_args()
+
 
 devices = []
 for line in os.popen('adb devices').read().split("\n"):
@@ -13,16 +24,24 @@ for line in os.popen('adb devices').read().split("\n"):
   if len(device) == 2:
     devices.append(device[0])
 
-def unlock_dev():
+def root():
+  subprocess.call(['adb', '-s', i, 'root'])
+  subprocess.call(['adb', '-s', i, 'remount'])
+
+def on():
   for i in devices:
-    print "Turning on device... \n%s" %i
-    #subprocess.call(['adb', '-s', i, 'root'])
-    #time.sleep(2)
-    #subprocess.call(['adb', '-s', i, 'remount'])
+    print "Powering on device: %s" %i
     subprocess.call(["adb", "-s", i, "shell", "input", "keyevent", "26"])
     subprocess.call(["adb", "-s", i, "shell", "input", "keyevent", "82"])
-    #time.sleep(3)
 
-unlock_dev()
+def off():
+  for i in devices:
+    print "Powering off device: %s" %i
+    subprocess.call(['adb', '-s', i, 'shell', 'input', 'keyevent', '26'])
 
+
+if argParser.power_off:
+  off()
+if argParser.power_on:
+  on()
 
