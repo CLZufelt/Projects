@@ -41,10 +41,10 @@ else:
 
 root_dir = rootpath + "/Desktop/"
 
-country = "US"  #raw_input("Country (Ex. US): ")
-state = "CA"  #raw_input("State Abbreviation (Ex. CA): ")
-city = "MountainView"  #raw_input("City Code (Ex. MTV for Mountain View): ")
-location = "GoogleSB65"  #raw_input("Collect Location (Ex. GoogleSB65): ")
+country = raw_input("Country (Ex. US): ")
+state = raw_input("State Abbreviation (Ex. CA): ")
+city = raw_input("City Code (Ex. MTV for Mountain View): ")
+location = raw_input("Collect Location (Ex. GoogleSB65): ")
 
 dest_dir = country
 dest_dir += "_" + state
@@ -203,7 +203,7 @@ def create_json(data, destination_dir=root_dir):
       adf_properties.write(adf_json)
 
 def compress_files(destination, source_dir):
-  with tarfile.open(destination + "tar.gz", "w:gz") as tar:
+  with tarfile.open(destination + ".tar.gz", "w:gz") as tar:
     tar.add(source_dir, arcname=os.path.basename(source_dir))
     return destination
 
