@@ -80,27 +80,29 @@ def raw_data_files(serial):
   raw_data = [line.split("\r")[0] for line in
          os.popen(get_raw_data).read().split("\n")
          if len(line.split("\r")) == 2]
-  for i in raw_data:
-    if "opendir failed, Permission denied" in i:
-      subprocess.call("abd", "-s", serial, "root")
-      subprocess.call("abd", "-s", serial, "remount")
-    if i.endswith("No such file or directory"):
-      print  "This device, %s, has no adf's to pull." % serial
+  if raw_data[0].endswith("Permission denied"):
+    os.system("abd -s %s root" % serial)
+    time.sleep(3)
+    os.system("abd -s %s remount" % serial)
+    raw_data = raw_data_files(serial)
+  if raw_data[0].endswith("No such file or directory"):
+    print  "This device, %s, has no adf's to pull." % serial
   return raw_data
 
 def adfs(serial):
   get_adfs = "adb -s %s shell ls " \
               "data/data/com.projecttango.tango/files/Tango/ADFs/" % serial
-  adfs = [line.split("\r")[0] for line in
+  adf = [line.split("\r")[0] for line in
           os.popen(get_adfs).read().split("\n")
           if len(line.split("\r")) == 2]
-  for i in adfs:
-    if "opendir failed, Permission denied" in i:
-      subprocess.call("abd", "-s", serial, "root")
-      subprocess.call("abd", "-s", serial, "remount")
-    if i.endswith("No such file or directory"):
-      return "This device, %s, has no adf's to pull." % serial
-  return adfs
+  if adf[0].endswith("Permission denied"):
+    os.system("abd -s %s root" % serial)
+    time.sleep(3)
+    os.system("abd -s %s remount" % serial)
+    adf = adfs(serial)
+  if adf[0].endswith("No such file or directory"):
+    return "This device, %s, has no adf's to pull." % serial
+  return adf
 
 def datetime_stamps(raw_data):
   data = raw_data
@@ -117,9 +119,9 @@ def mkdir(datetime, destination_dir=root_dir+dest_dir):
   return str(destination_dir)
 
 def adf_pull(devices=devices):
+  begin = time.time()
   for device in devices:
     raw_data = raw_data_files(device)
-    begin = time.time()
     for data in raw_data:
       destination_dir = mkdir(datetime_stamps(data))
       start = time.time()
@@ -127,7 +129,12 @@ def adf_pull(devices=devices):
       os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
       print "The pull took: %s" % countup(start)
       create_json(data, destination_dir)
-    print "Pull from all devices took: %s" % countup(begin)
+      adf = adfs(device)
+      if adf > 0:
+        for data in adf:
+          pull_from = "data/data/com.projecttango.tango/files/Tango/ADFs/" + data
+          os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
+  print "Pull from all devices took: %s" % countup(begin)
 
 def create_json(data, destination_dir=root_dir):
   if argParser.json:
