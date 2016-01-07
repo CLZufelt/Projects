@@ -134,7 +134,7 @@ def adf_pull(devices=devices):
         for data in adf:
           pull_from = "data/data/com.projecttango.tango/files/Tango/ADFs/" + data
           os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
-  print "Pull from all devices took: %s" % countup(begin)
+  print "Pull from all devices took: %s" % str(countup(begin))
 
 def create_json(data, destination_dir=root_dir):
   if argParser.json:
@@ -187,8 +187,6 @@ def create_json(data, destination_dir=root_dir):
       adf_json += "\"device_%s\"]\n}" % raw_input("Device:\nyellowstone\n")
       adf_properties.write(adf_json)
   else:
-    print "This is the data", data
-    print destination_dir
     with open(destination_dir + "/properties.json", 'w') as properties:
       properties_file = "{\n    \"collection_timestamp\" : \"%s %s\",\n"\
       % ('%04d-%02d-%02d' % (int(data[0:4]),
