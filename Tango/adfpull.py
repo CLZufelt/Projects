@@ -9,7 +9,6 @@ import datetime
 import os
 import platform
 import subprocess
-import sys
 import time
 import tarfile
 
@@ -46,11 +45,11 @@ state = raw_input("State Abbreviation (Ex. CA): ")
 city = raw_input("City Code (Ex. MTV for Mountain View): ")
 location = raw_input("Collect Location (Ex. GoogleSB65): ")
 
-dest_dir = country
+dest_dir = root_dir + country
 dest_dir += "_" + state
 dest_dir += "_" + city
 dest_dir += "_" + location
-dest_dir += "/" + dest_dir
+#dest_dir += "/" + dest_dir
 
 devices = [device[0]
            for device in [line.split("\t")
@@ -104,36 +103,35 @@ def adfs(serial):
     return "This device, %s, has no adf's to pull." % serial
   return adf
 
-def datetime_stamps(raw_data):
-  data = raw_data
-  datetime_stamp = "%04d%02d%02d_%04d" % (int(data[0:4]),
+def datetime_stamps(data):
+  date_stamp = "%04d%02d%02d" % (int(data[0:4]),
          int(list(calendar.month_abbr).index(data[4:7])),
-         int(data[7:9]),
-         int([str(data)][0].split("_")[1][0:4]))
-  return datetime_stamp
+         int(data[7:9]))
+  time_stamp = "_%04d" % int([str(data)][0].split("_")[1][0:4])
+  return date_stamp, time_stamp
 
-def mkdir(datetime, destination_dir=root_dir+dest_dir):
-  destination_dir += "_" + datetime
+def mkdir(datetime, destination_dir=dest_dir):
+  destination_dir += "/" + dest_dir + "_" + datetime
   if not os.path.exists(destination_dir):
     os.system("mkdir " + destination_dir)
   return str(destination_dir)
 
-def adf_pull(devices=devices):
+def adf_pull(device):
   begin = time.time()
-  for device in devices:
-    raw_data = raw_data_files(device)
-    for data in raw_data:
-      destination_dir = mkdir(datetime_stamps(data))
-      start = time.time()
-      pull_from = "data/data/com.projecttango.tangomapper/files/" + data
-      os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
-      print "The pull took: %s" % countup(start)
-      create_json(data, destination_dir)
-      adf = adfs(device)
-      if adf > 0:
-        for data in adf:
-          pull_from = "data/data/com.projecttango.tango/files/Tango/ADFs/" + data
-          os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
+  raw_data = raw_data_files(device)
+  for data in raw_data:
+    date_stamp, time_stamp = datetime_stamps(data)
+    destination_dir = mkdir(date_stamp + time_stamp)
+    start = time.time()
+    pull_from = "data/data/com.projecttango.tangomapper/files/" + data
+    os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
+    print "The pull took: %s" % countup(start)
+    create_json(data, destination_dir)
+    adf = adfs(device)
+    if adf > 0:
+      for data in adf:
+        pull_from = "data/data/com.projecttango.tango/files/Tango/ADFs/" + data
+        os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
   print "Pull from all devices took: %s" % str(countup(begin))
 
 def create_json(data, destination_dir=root_dir):
@@ -212,14 +210,17 @@ def compress_files(destination, source_dir):
     tar.add(source_dir, arcname=os.path.basename(source_dir))
     return destination
 
-def upload(destination, source_dir=dest_dir):
+def upload(destination=dest_dir, source_dir=dest_dir):
   push_destination = "gs://project-tango-internal-data/" + destination
   subprocess.call(["gsutil", "cp", "-r", source_dir, push_destination])
 
 def main(devices=devices):
-  adf_pull()
-  #compress_files(root_dir + dest_dir, root_dir + dest_dir)
-  #upload()
+  for i in devices:
+    adf_pull(i)
+    for data in raw_data_files(i):
+      date_of_collect, time_of_collect = datetime_stamps(data)
+    compress_files(dest_dir + date_of_collect, dest_dir)
+    #upload()
 
 if __name__ == "__main__":
   main()
