@@ -227,6 +227,8 @@ def main(devices=devices):
         print "Compression function ran successfully."
       except IOError:
         print "Something went wrong with raw_data_files."
+    else:
+      print "Path apparently doesn't exist."
     #upload()
 
 if __name__ == "__main__":
