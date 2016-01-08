@@ -45,7 +45,7 @@ state = raw_input("State Abbreviation (Ex. CA): ")
 city = raw_input("City Code (Ex. MTV for Mountain View): ")
 location = raw_input("Collect Location (Ex. GoogleSB65): ")
 
-dest_dir = root_dir + country
+dest_dir = country
 dest_dir += "_" + state
 dest_dir += "_" + city
 dest_dir += "_" + location
@@ -110,7 +110,7 @@ def datetime_stamps(data):
   time_stamp = "_%04d" % int([str(data)][0].split("_")[1][0:4])
   return date_stamp, time_stamp
 
-def mkdir(datetime, destination_dir=dest_dir):
+def mkdir(datetime, destination_dir=root_dir + dest_dir):
   destination_dir += "/" + dest_dir + "_" + datetime
   if not os.path.exists(destination_dir):
     os.system("mkdir " + destination_dir)
@@ -215,13 +215,14 @@ def upload(destination=dest_dir, source_dir=dest_dir):
   subprocess.call(["gsutil", "cp", "-r", source_dir, push_destination])
 
 def main(devices=devices):
-  for i in devices:
-    adf_pull(i)
-    for data in raw_data_files(i):
+  for device in devices:
+    adf_pull(device)
+    for data in raw_data_files(device):
       date_of_collect, time_of_collect = datetime_stamps(data)
-    if os.path.exists(dest_dir + date_of_collect):
+    if os.path.exists(root_dir + dest_dir + date_of_collect):
       try:
-        compress_files(dest_dir + date_of_collect, dest_dir)
+        compress_files(root_dir + dest_dir + date_of_collect,
+                       root_dir + dest_dir)
       except IOError:
         print "Something went wrong with raw_data_files."
     #upload()
