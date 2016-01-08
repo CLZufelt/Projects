@@ -216,12 +216,15 @@ def upload(destination=dest_dir, source_dir=dest_dir):
 
 def main(devices=devices):
   for device in devices:
-    adf_pull(device)
+    #adf_pull(device)
     date_of_collect, time_of_collect = datetime_stamps(raw_data_files(device)[0])
     if os.path.exists(root_dir + dest_dir + date_of_collect):
+      print "path exists", root_dir + dest_dir + date_of_collect
       try:
+        print "compressing now"
         compress_files(root_dir + dest_dir + date_of_collect,
                        root_dir + dest_dir)
+        print "Compression function ran successfully."
       except IOError:
         print "Something went wrong with raw_data_files."
     #upload()
