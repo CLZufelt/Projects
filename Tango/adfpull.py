@@ -218,11 +218,11 @@ def main(devices=devices):
   for device in devices:
     #adf_pull(device)
     date_of_collect, time_of_collect = datetime_stamps(raw_data_files(device)[0])
-    if os.path.exists(root_dir + dest_dir + date_of_collect):
-      print "path exists", root_dir + dest_dir + date_of_collect
+    if os.path.exists(root_dir + dest_dir + "_" + date_of_collect):
+      print "path exists", root_dir + dest_dir + "_" + date_of_collect
       try:
         print "compressing now"
-        compress_files(root_dir + dest_dir + date_of_collect,
+        compress_files(root_dir + dest_dir + "_" + date_of_collect,
                        root_dir + dest_dir)
         print "Compression function ran successfully."
       except IOError:
