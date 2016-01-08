@@ -110,8 +110,8 @@ def datetime_stamps(data):
   time_stamp = "_%04d" % int([str(data)][0].split("_")[1][0:4])
   return date_stamp, time_stamp
 
-def mkdir(datetime, destination_dir=root_dir + dest_dir):
-  destination_dir += "/" + dest_dir + "_" + datetime
+def mkdir(date, time, destination_dir=root_dir + dest_dir):
+  destination_dir += "_" + date + "/" + dest_dir + time
   if not os.path.exists(destination_dir):
     os.system("mkdir " + destination_dir)
   return str(destination_dir)
@@ -121,7 +121,7 @@ def adf_pull(device):
   raw_data = raw_data_files(device)
   for data in raw_data:
     date_stamp, time_stamp = datetime_stamps(data)
-    destination_dir = mkdir(date_stamp + time_stamp)
+    destination_dir = mkdir(date_stamp, time_stamp)
     start = time.time()
     pull_from = "data/data/com.projecttango.tangomapper/files/" + data
     os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
