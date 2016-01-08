@@ -113,7 +113,7 @@ def datetime_stamps(data):
 def mkdir(date, time, destination_dir=root_dir + dest_dir):
   destination_dir += "_" + date + "/" + dest_dir + time
   if not os.path.exists(destination_dir):
-    os.system("mkdir " + destination_dir)
+    os.mkdir(destination_dir, 0666)
   return str(destination_dir)
 
 def adf_pull(device):
@@ -132,7 +132,7 @@ def adf_pull(device):
       for data in adf:
         pull_from = "data/data/com.projecttango.tango/files/Tango/ADFs/" + data
         os.system("adb -s %s pull %s %s" % (device, pull_from, destination_dir))
-  print "Pull from all devices took: %s" % countup(begin)
+  print "Pull from all devices took: ", countup(begin)
 
 def create_json(data, destination_dir=root_dir):
   if argParser.json:
@@ -217,8 +217,7 @@ def upload(destination=dest_dir, source_dir=dest_dir):
 def main(devices=devices):
   for device in devices:
     adf_pull(device)
-    for data in raw_data_files(device):
-      date_of_collect, time_of_collect = datetime_stamps(data)
+    date_of_collect, time_of_collect = datetime_stamps(raw_data_files(device)[0])
     if os.path.exists(root_dir + dest_dir + date_of_collect):
       try:
         compress_files(root_dir + dest_dir + date_of_collect,
