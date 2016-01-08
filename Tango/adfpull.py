@@ -219,7 +219,11 @@ def main(devices=devices):
     adf_pull(i)
     for data in raw_data_files(i):
       date_of_collect, time_of_collect = datetime_stamps(data)
-    compress_files(dest_dir + date_of_collect, dest_dir)
+    if os.path.exists(dest_dir + date_of_collect):
+      try:
+        compress_files(dest_dir + date_of_collect, dest_dir)
+      except IOError:
+        print "Something went wrong with raw_data_files."
     #upload()
 
 if __name__ == "__main__":
