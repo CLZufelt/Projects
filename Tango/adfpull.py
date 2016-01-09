@@ -113,7 +113,7 @@ def datetime_stamps(data):
 def mkdir(date, time, destination_dir=root_dir + dest_dir):
   destination_dir += "_" + date + "/" + dest_dir + time
   if not os.path.exists(destination_dir):
-    os.mkdir(destination_dir, 0666)
+    os.system("mkdir" + destination_dir)
   return str(destination_dir)
 
 def adf_pull(device):
@@ -216,19 +216,14 @@ def upload(destination=dest_dir, source_dir=dest_dir):
 
 def main(devices=devices):
   for device in devices:
-    #adf_pull(device)
+    adf_pull(device)
     date_of_collect, time_of_collect = datetime_stamps(raw_data_files(device)[0])
     if os.path.exists(root_dir + dest_dir + "_" + date_of_collect):
-      print "path exists", root_dir + dest_dir + "_" + date_of_collect
       try:
-        print "compressing now"
         compress_files(root_dir + dest_dir + "_" + date_of_collect,
-                       root_dir + dest_dir)
-        print "Compression function ran successfully."
+                       root_dir + dest_dir + "_" + date_of_collect)
       except IOError:
         print "Something went wrong with raw_data_files."
-    else:
-      print "Path apparently doesn't exist."
     #upload()
 
 if __name__ == "__main__":
