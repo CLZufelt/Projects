@@ -18,11 +18,10 @@ parser.add_argument("--off", action='store_true',
 argParser = parser.parse_args()
 
 
-devices = []
-for line in os.popen('adb devices').read().split("\n"):
-  device = line.split("\t")
-  if len(device) == 2:
-    devices.append(device[0])
+devices = [device[0]
+           for device in [line.split("\t")
+           for line in os.popen('adb devices').read().split("\n")
+           if len(line.split("\t")) == 2]]
 
 def root():
   subprocess.call(['adb', '-s', i, 'root'])
