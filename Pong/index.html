@@ -1,90 +1,151 @@
 <html>
 <head>
 <script type="application/javascript">
-//var 
 
 var canvas = null;
 var ctx = null;
 
+var canvas_left = 0;
+var canvas_right = 500;
+var canvas_top = 0;
+var canvas_bottom = 500;
+
+var paddle_height = 50;
+var paddle_width = 10;
+
+var puck_height = 10;
+var puck_width = 10;
+
+var x = 0;
+var y = 0;
+
+var why1 = 0;
+var why2 = 0;
+
+var speedx = 0;
+var speedy = 0;
+
+var right_paddle_speed = 0;
+var left_paddle_speed = 0;
+
+var game_in_progress = false;
+
 function init() {
   canvas = document.getElementById('pong');
   ctx = canvas.getContext('2d');
+  game_ready();
   draw();
+}
+
+function game_ready() {
+  x = canvas_right / 2;
+  y = canvas_bottom / 2;
+
+  why1 = (canvas_bottom / 2) - (paddle_height / 2);
+  why2 = why1;
 }
 
 function draw() {
   clear_screen();
   draw_paddles();
   draw_puck();
-  console.log("Drawing frame");
   setTimeout(draw, 5);
 }
 
-var why1 = 225;
-var why2 = 225;
 function draw_paddles() {
   ctx.fillStyle = "rgb(80,80,80)";
-  why1 += paddle_speed_left;
+  why1 += left_paddle_speed;
+  if (why1 >= 450) {
+    why1 = 450;
+  } else if (why1 <= 0) {
+    why1 = 0;
+  }
   ctx.fillRect(0,why1,10,50);
-
+  
   ctx.fillStyle = "rgb(80,80,80)";
-  why2 += paddle_speed_right;
+  why2 += right_paddle_speed;
+  if (why2 >= 450) {
+    why2 = 450;
+  } else if (why2 <= 0) {
+    why2 = 0;
+  }
   ctx.fillRect(490,why2,10,50);
+  //console.log(why2)
 }
 
-var paddle_speed_right = 0;
-var paddle_speed_left = 0;
-function paddle_control(event, direction) { 
+function keypress(event, direction) { 
   var keydown = String.fromCharCode(event.keyCode)
-  console.log("You pressed: " + keydown)
+  if (keydown === " " && game_in_progress === false) {
+    speedx = 1;
+    speedy = 0.5;
+    game_in_progress = true
+  }
   if (keydown === "A" && direction === "down") {
-    paddle_speed_left = 1;
+    left_paddle_speed = 1;
   }
   if (keydown === "A" && direction === "up") {
-    paddle_speed_left = 0;
+    left_paddle_speed = 0;
   }
   if (keydown === "S" && direction === "down") {
-    paddle_speed_left = -1;
+    left_paddle_speed = -1;
   }
   if (keydown === "S" && direction === "up") {
-    paddle_speed_left = 0;
+    left_paddle_speed = 0;
   }
   if (keydown === "K" && direction === "down") {
-    paddle_speed_right = 1;
+    right_paddle_speed = 1;
   }
   if (keydown === "K" && direction === "up") {
-    paddle_speed_right = 0;
+    right_paddle_speed = 0;
   }
   if (keydown === "L" && direction === "down") {
-    paddle_speed_right = -1;
+    right_paddle_speed = -1;
   }
   if (keydown === "L" && direction === "up") {
-    paddle_speed_right = 0;
+    right_paddle_speed = 0;
   }
 }
 
-var x = 250;
-var y = 250;
-var speedx = 1;
-var speedy = 0.5;
 function draw_puck() {
   ctx.fillStyle = "rgb(0,0,0)";
   ctx.fillRect(x,y,10,10);
+  bounce_lose();
   if (x === 0) {
-    speedx = 1;
+    speedx = 0;
+    speedy = 0;
   }
   if (y === 0) {
-    speedy = 0.5;
+    speedy = 1;
   }
   if (x === 490) {
-    speedx = -1;
+    speedx = 0;
+    speedy = 0;
   }
   if (y === 490) {
-    speedy = -0.5;
+    speedy = -1;
   }
   x += speedx;
   y += speedy;
 }
+
+function bounce_lose() {
+  var right_paddle_bottom = why2;
+  var right_paddle_top = why2 + 50;
+  var left_paddle_bottom = why1;
+  var left_paddle_top = why1 + 50;
+  if (x === 10) {
+    if (y >= (left_paddle_bottom) && y <= (left_paddle_top)) {
+      speedx = 1;
+      speedy = 0.5;
+    }
+  } else if (x === 480) {
+      if (y >= (right_paddle_bottom) && y <= (right_paddle_top)) {
+        speedx = -1;
+        speedy = -0.5;
+      }
+    }
+}
+
 
 function clear_screen() {
   ctx.fillStyle = "rgb(255, 255, 255)";
@@ -94,7 +155,7 @@ function clear_screen() {
 </script>
 
 </head>
-<body onkeydown="paddle_control(event, 'down');" onkeyup="paddle_control(event,
+<body onkeydown="keypress(event, 'down');" onkeyup="keypress(event, 
 'up');" onload="init();">
 
 <canvas id="pong" style="border: 1px solid black;" width="500" height="500"></canvas>
