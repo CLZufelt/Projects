@@ -1,5 +1,6 @@
 <html>
 <head>
+<link rel="shortcut icon" href="favicon.ico" type="image/ico"/>
 <script type="application/javascript">
 
 var canvas = null;
@@ -22,7 +23,7 @@ var y = 0;
 var why1 = 0;
 var why2 = 0;
 
-var speedx = 0;
+var speed_on_x_axis = 0;
 var speedy = 0;
 
 var right_paddle_speed = 0;
@@ -73,35 +74,44 @@ function draw_paddles() {
   //console.log(why2)
 }
 
+//function speed(speed_on_x_axis, speedy) {
+//  
+//}
+
+
 function keypress(event, direction) { 
   var keydown = String.fromCharCode(event.keyCode)
   if (keydown === " " && game_in_progress === false) {
-    speedx = 1;
-    speedy = 0.5;
+    speed_on_x_axis = (Math.random() * 2) -1;
+    speedy = (Math.random()* 2) -1;
+    var velocity = Math.sqrt(speed_on_x_axis * speed_on_x_axis + speedy * speedy);
+    speed_on_x_axis = speed_on_x_axis / velocity;
+    speedy = speedy / velocity;
+    velocity = Math.sqrt(speed_on_x_axis * speed_on_x_axis + speedy * speedy);
     game_in_progress = true
   }
-  if (keydown === "A" && direction === "down") {
-    left_paddle_speed = 1;
-  }
-  if (keydown === "A" && direction === "up") {
-    left_paddle_speed = 0;
-  }
   if (keydown === "S" && direction === "down") {
-    left_paddle_speed = -1;
+    left_paddle_speed = 1;
   }
   if (keydown === "S" && direction === "up") {
     left_paddle_speed = 0;
   }
-  if (keydown === "K" && direction === "down") {
-    right_paddle_speed = 1;
+  if (keydown === "A" && direction === "down") {
+    left_paddle_speed = -1;
   }
-  if (keydown === "K" && direction === "up") {
-    right_paddle_speed = 0;
+  if (keydown === "A" && direction === "up") {
+    left_paddle_speed = 0;
   }
   if (keydown === "L" && direction === "down") {
-    right_paddle_speed = -1;
+    right_paddle_speed = 1;
   }
   if (keydown === "L" && direction === "up") {
+    right_paddle_speed = 0;
+  }
+  if (keydown === "K" && direction === "down") {
+    right_paddle_speed = -1;
+  }
+  if (keydown === "K" && direction === "up") {
     right_paddle_speed = 0;
   }
 }
@@ -110,21 +120,21 @@ function draw_puck() {
   ctx.fillStyle = "rgb(0,0,0)";
   ctx.fillRect(x,y,10,10);
   bounce_lose();
-  if (x === 0) {
-    speedx = 0;
+  if (x <= 0) {
+    speed_on_x_axis = 0;
     speedy = 0;
   }
-  if (y === 0) {
+  if (y <= 0) {
     speedy = 1;
   }
-  if (x === 490) {
-    speedx = 0;
+  if (x >= 490) {
+    speed_on_x_axis = 0;
     speedy = 0;
   }
-  if (y === 490) {
+  if (y >= 490) {
     speedy = -1;
   }
-  x += speedx;
+  x += speed_on_x_axis;
   y += speedy;
 }
 
@@ -133,15 +143,15 @@ function bounce_lose() {
   var right_paddle_top = why2 + 50;
   var left_paddle_bottom = why1;
   var left_paddle_top = why1 + 50;
-  if (x === 10) {
+  if (x <= 10) {
     if (y >= (left_paddle_bottom) && y <= (left_paddle_top)) {
-      speedx = 1;
-      speedy = 0.5;
+      speed_on_x_axis = 1;
+      speedy = 1;
     }
-  } else if (x === 480) {
+  } else if (x >= 480) {
       if (y >= (right_paddle_bottom) && y <= (right_paddle_top)) {
-        speedx = -1;
-        speedy = -0.5;
+        speed_on_x_axis = -1;
+        speedy = -1;
       }
     }
 }

@@ -202,32 +202,32 @@ def flashDevices(userBSP, device):
   """
   if not argParser.flash_device:
     imagePath = userBSP
-  if os.popen("adb -s" + device + "remount root").endswith("denied"):
-    locked = raw_input("Device locked, would you like to unlock now? y/n ")
-    if locked == "y":
-      unlock(device)
-    else:
-      print "Not unlocking device. Quitting program."
-      quit()
-    print "Flashing %s ..." % device
-    subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
-    time.sleep(1)
-    subprocess.check_call(["fastboot", "-s", device, "flash",
-                "bootloader", imagePath + "/bootloader.bin"])
-    subprocess.check_call(["fastboot", "-s", device, "flash", "dtb",
-                imagePath + "/tegra124-ardbeg.dtb"])
-    subprocess.check_call(["fastboot", "-s", device, "flash", "boot",
-                imagePath + "/boot.img"])
-    subprocess.check_call(["fastboot", "-s", device, "flash", "system",
-                imagePath + "/system.img"])
-    subprocess.check_call(["fastboot", "-s", device, "flash", "recovery",
-                imagePath + "/recovery.img"])
-    subprocess.check_call(["fastboot", "-s", device, "-w"])
-    subprocess.check_call(["fastboot", "-s", device, "reboot"])
-    print "-"*25 + "Flash Finished for device " + device + "-"*25
-    print "Device will now reboot. This takes about 4 minutes."
-    if device == lastDevice:
-      countdown(245)
+    if os.popen("adb -s" + device + "remount root").endswith("denied"):
+      locked = raw_input("Device locked, would you like to unlock now? y/n ")
+      if locked == "y":
+        unlock(device)
+      else:
+        print "Not unlocking device. Quitting program."
+        quit()
+      print "Flashing %s ..." % device
+      subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
+      time.sleep(1)
+      subprocess.check_call(["fastboot", "-s", device, "flash",
+                  "bootloader", imagePath + "/bootloader.bin"])
+      subprocess.check_call(["fastboot", "-s", device, "flash", "dtb",
+                  imagePath + "/tegra124-ardbeg.dtb"])
+      subprocess.check_call(["fastboot", "-s", device, "flash", "boot",
+                  imagePath + "/boot.img"])
+      subprocess.check_call(["fastboot", "-s", device, "flash", "system",
+                  imagePath + "/system.img"])
+      subprocess.check_call(["fastboot", "-s", device, "flash", "recovery",
+                  imagePath + "/recovery.img"])
+      subprocess.check_call(["fastboot", "-s", device, "-w"])
+      subprocess.check_call(["fastboot", "-s", device, "reboot"])
+      print "-"*25 + "Flash Finished for device " + device + "-"*25
+      print "Device will now reboot. This takes about 4 minutes."
+      if device == lastDevice:
+        countdown(245)
 
 def installApks(datePath, device, unzipPath):
   """Install apps by serial number.
@@ -239,7 +239,7 @@ def installApks(datePath, device, unzipPath):
     unzipPath: Path to apks.
   """
   if not argParser.push_apps:
-    print "Installing TangoCore..."
+    #print "Installing TangoCore..."
     if os.path.exists(datePath + "/SingleTangoFiles"):
       os.system("adb -s %s install -r %s" %
                 (device, datePath + "/SingleTangoFiles/TangoCore*.apk"))
@@ -250,10 +250,12 @@ def installApks(datePath, device, unzipPath):
       for app in glob.glob(unzipPath + "*.apk"):
         print "Installing " + app
         os.system("adb -s %s install -r %s" % (device, app))
-    print "Rebooting device. This takes about 45 seconds..."
-    os.system("adb -s %s reboot" % device)
-    if device == lastDevice:
-      countdown(45)
+        ### Temporary!!
+        os.system("adb -s %s push ~/Documents/bsp-tests/apps/20160129-M/dodgers/main.1.com.uppercut_games.dodgers.obb /sdcard/Android/obb/com.uppercut_games.dodgers/main.1.com.uppercut_games.dodgers.obb" % (device))
+    #print "Rebooting device. This takes about 45 seconds..."
+    #os.system("adb -s %s reboot" % device)
+    #if device == lastDevice:
+      #countdown(45)
 
 def rename():
   """Rename app names.
