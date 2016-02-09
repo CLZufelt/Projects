@@ -250,12 +250,10 @@ def installApks(datePath, device, unzipPath):
       for app in glob.glob(unzipPath + "*.apk"):
         print "Installing " + app
         os.system("adb -s %s install -r %s" % (device, app))
-        ### Temporary!!
-        os.system("adb -s %s push ~/Documents/bsp-tests/apps/20160129-M/dodgers/main.1.com.uppercut_games.dodgers.obb /sdcard/Android/obb/com.uppercut_games.dodgers/main.1.com.uppercut_games.dodgers.obb" % (device))
     #print "Rebooting device. This takes about 45 seconds..."
     #os.system("adb -s %s reboot" % device)
-    #if device == lastDevice:
-      #countdown(45)
+    if device == lastDevice:
+      countdown(45)
 
 def rename():
   """Rename app names.
