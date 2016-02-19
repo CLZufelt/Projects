@@ -13,18 +13,20 @@ var canvas_bottom = 500;
 
 var paddle_height = 50;
 var paddle_width = 10;
+var left_paddle_x = 0;
+var right_paddle_x = 490;
 
 var puck_height = 10;
 var puck_width = 10;
 
-var x = 0;
-var y = 0;
+var puck_x = 0;
+var puck_y = 0;
 
-var why1 = 0;
-var why2 = 0;
+var left_paddle_y = 0;
+var right_paddle_y = 0;
 
 var speed_on_x_axis = 0;
-var speedy = 0;
+var speed_on_y_axis = 0;
 
 var right_paddle_speed = 0;
 var left_paddle_speed = 0;
@@ -38,12 +40,23 @@ function init() {
   draw();
 }
 
-function game_ready() {
-  x = canvas_right / 2;
-  y = canvas_bottom / 2;
+function score1() {
+  score1 = document.getElementById('score1');
+  score1.innerHTML ++;
+}
 
-  why1 = (canvas_bottom / 2) - (paddle_height / 2);
-  why2 = why1;
+function score2() {
+  score2 = document.getELementById('score2');
+  score2.innerHTML ++;
+
+}
+
+function game_ready() {
+  puck_x = canvas_right / 2;
+  puck_y = canvas_bottom / 2;
+
+  left_paddle_y = (canvas_bottom / 2) - (paddle_height / 2);
+  right_paddle_y = left_paddle_y;
 }
 
 function draw() {
@@ -55,39 +68,38 @@ function draw() {
 
 function draw_paddles() {
   ctx.fillStyle = "rgb(80,80,80)";
-  why1 += left_paddle_speed;
-  if (why1 >= 450) {
-    why1 = 450;
-  } else if (why1 <= 0) {
-    why1 = 0;
+  left_paddle_y += left_paddle_speed;
+  if (left_paddle_y >= (canvas_bottom - paddle_height)) {
+    left_paddle_y = (canvas_bottom - paddle_height);
+  } else if (left_paddle_y <= canvas_top) {
+    left_paddle_y = canvas_top;
   }
-  ctx.fillRect(0,why1,10,50);
+  ctx.fillRect(left_paddle_x,left_paddle_y,paddle_width,paddle_height);
   
   ctx.fillStyle = "rgb(80,80,80)";
-  why2 += right_paddle_speed;
-  if (why2 >= 450) {
-    why2 = 450;
-  } else if (why2 <= 0) {
-    why2 = 0;
+  right_paddle_y += right_paddle_speed;
+  if (right_paddle_y >= (canvas_bottom - paddle_height)) {
+    right_paddle_y = (canvas_bottom - paddle_height);
+  } else if (right_paddle_y <= canvas_top) {
+    right_paddle_y = canvas_top;
   }
-  ctx.fillRect(490,why2,10,50);
-  //console.log(why2)
+  ctx.fillRect(right_paddle_x,right_paddle_y,paddle_width,paddle_height);
 }
-
-//function speed(speed_on_x_axis, speedy) {
-//  
-//}
 
 
 function keypress(event, direction) { 
   var keydown = String.fromCharCode(event.keyCode)
   if (keydown === " " && game_in_progress === false) {
-    speed_on_x_axis = (Math.random() * 2) -1;
-    speedy = (Math.random()* 2) -1;
-    var velocity = Math.sqrt(speed_on_x_axis * speed_on_x_axis + speedy * speedy);
+    do { 
+      speed_on_x_axis = (Math.random() * 2) -1;
+    } while (Math.abs(speed_on_x_axis) < 0.2);
+    do { 
+      speed_on_y_axis = (Math.random()* 2) -1;
+    } while (Math.abs(speed_on_y_axis) > 0.8);
+    var velocity = Math.sqrt(speed_on_x_axis * speed_on_x_axis + speed_on_y_axis * speed_on_y_axis);
     speed_on_x_axis = speed_on_x_axis / velocity;
-    speedy = speedy / velocity;
-    velocity = Math.sqrt(speed_on_x_axis * speed_on_x_axis + speedy * speedy);
+    speed_on_y_axis = speed_on_y_axis / velocity;
+    velocity = Math.sqrt(speed_on_x_axis * speed_on_x_axis + speed_on_y_axis * speed_on_y_axis);
     game_in_progress = true
   }
   if (keydown === "S" && direction === "down") {
@@ -118,40 +130,40 @@ function keypress(event, direction) {
 
 function draw_puck() {
   ctx.fillStyle = "rgb(0,0,0)";
-  ctx.fillRect(x,y,10,10);
+  ctx.fillRect(puck_x,puck_y,10,10);
   bounce_lose();
-  if (x <= 0) {
+  if (puck_x <= 0) {
     speed_on_x_axis = 0;
-    speedy = 0;
+    speed_on_y_axis = 0;
   }
-  if (y <= 0) {
-    speedy = 1;
+  if (puck_y <= 0) {
+    speed_on_y_axis = 1;
   }
-  if (x >= 490) {
+  if (puck_x >= 490) {
     speed_on_x_axis = 0;
-    speedy = 0;
+    speed_on_y_axis = 0;
   }
-  if (y >= 490) {
-    speedy = -1;
+  if (puck_y >= 490) {
+    speed_on_y_axis = -1;
   }
-  x += speed_on_x_axis;
-  y += speedy;
+  puck_x += speed_on_x_axis;
+  puck_y += speed_on_y_axis;
 }
 
 function bounce_lose() {
-  var right_paddle_bottom = why2;
-  var right_paddle_top = why2 + 50;
-  var left_paddle_bottom = why1;
-  var left_paddle_top = why1 + 50;
-  if (x <= 10) {
-    if (y >= (left_paddle_bottom) && y <= (left_paddle_top)) {
+  var right_paddle_bottom = right_paddle_y;
+  var right_paddle_top = right_paddle_y + 50;
+  var left_paddle_bottom = left_paddle_y;
+  var left_paddle_top = left_paddle_y + 50;
+  if (puck_x <= 10) {
+    if (puck_y >= (left_paddle_bottom) && puck_y <= (left_paddle_top)) {
       speed_on_x_axis = 1;
-      speedy = 1;
+      speed_on_y_axis = 1;
     }
-  } else if (x >= 480) {
-      if (y >= (right_paddle_bottom) && y <= (right_paddle_top)) {
+  } else if (puck_x >= 480) {
+      if (puck_y >= (right_paddle_bottom) && puck_y <= (right_paddle_top)) {
         speed_on_x_axis = -1;
-        speedy = -1;
+        speed_on_y_axis = -1;
       }
     }
 }
@@ -165,10 +177,12 @@ function clear_screen() {
 </script>
 
 </head>
-<body onkeydown="keypress(event, 'down');" onkeyup="keypress(event, 
-'up');" onload="init();">
+<body onkeydown="keypress(event, 'down');" onkeyup="keypress(event, 'up');" onload="init();">
 
-<canvas id="pong" style="border: 1px solid black;" width="500" height="500"></canvas>
+<div id="score1" color="red" align="left">0</div> <div id="score2" align="left">0</div>
+
+<div style="margin-top: 250px"></div>
+<center><canvas id="pong" style="border: 1px solid black;" width="500" height="500"></canvas></center>
 
 </body>
 </html>
