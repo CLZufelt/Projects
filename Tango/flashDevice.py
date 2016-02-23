@@ -241,7 +241,6 @@ def installApks(datePath, device, unzipPath):
     datePath: Path to Apps and TangoCore.
     unzipPath: Path to apks.
   """
-  print datePath
   if not argParser.push_apps:
     if not argParser.no_core:
       if os.path.exists(datePath + "/SingleTangoFiles"):
@@ -251,6 +250,7 @@ def installApks(datePath, device, unzipPath):
         os.system("adb -s %s install -rd %s" %
                  (device, datePath + "/signedTangoCore/TangoCore*.apk"))
     if not argParser.tango_core:
+      print unzipPath
       for app in glob.glob(unzipPath + "*.apk"):
         print "Installing " + app
         os.system("adb -s %s install -rd %s" % (device, app))
