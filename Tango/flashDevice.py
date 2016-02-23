@@ -87,7 +87,8 @@ devices = [device[0]
           for device in [line.split("\t")
           for line in os.popen('adb devices').read().split("\n")
           if len(line.split("\t")) == 2]]
-lastDevice = devices[-1]
+if len(devices) > 0:
+  lastDevice = devices[-1]
 
 if argParser.serial_number:
   devices = argParser.serial_number
