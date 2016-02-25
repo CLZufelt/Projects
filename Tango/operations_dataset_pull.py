@@ -360,6 +360,14 @@ def upload_folder(source_file, bucket_name, subdir):
   # Upload the contents of a folder and it's subfolders to GCS.
 def upload_folder_recursive(source_dir, bucket_name, subdir):
   destination_dir = "gs://{0}/{1}".format(bucket_name, subdir)
+  # First we check that the remote directory exists (this seems to be necessary
+  # on osx).
+  marker_file_name = os.path.join(source_dir, "upload_started")
+  with open(marker_file_name, "w") as marker_file:
+    marker_file.write("upload started")
+  command = ["gsutil", "cp", marker_file_name,
+             destination_dir + "/upload_started"]
+
   command = ["gsutil", "-m", "rsync", "-r", source_dir, destination_dir]
   print "Running upload command: %s" % " ".join(command)
   subprocess.call(command)
