@@ -18,28 +18,31 @@ parser.add_argument('-build', action='store_true',
                     default=False, dest='user_build',
                     help='Set user build or user debug. Default user debug.')
 parser.add_argument('-f', action='store_true',
-                    default= False, dest='flash_device',
+                    default=False, dest='flash_device',
                     help='Do not flash device(s).')
+parser.add_argument('-u', action='store_true',
+                    default=False, dest='unlock_device',
+                    help='Unlock device.')
 parser.add_argument('-i', action='store_true',
-                    default= False, dest='push_apps',
+                    default=False, dest='push_apps',
                     help='Do not install apps or TangoCore.')
 parser.add_argument('-n', action='store_true',
-                    default= False, dest='no_core',
+                    default=False, dest='no_core',
                     help='Install apps, don\'t install TangoCore')
 parser.add_argument('-b', action='store_true',
-                    default= False, dest='unzip_bsp',
+                    default=False, dest='unzip_bsp',
                     help="Do not unzip bsp image.")
 parser.add_argument('-a', action='store_true',
-                    default= False, dest='unzip_apps',
+                    default=False, dest='unzip_apps',
                     help='Do not unzip apps/TangoCore.')
 parser.add_argument('-c', action='store_true',
-                    default= False, dest='tango_core',
+                    default=False, dest='tango_core',
                     help='Installs TangoCore and no apps.')
 parser.add_argument('-s', action='store', nargs="*",
                     dest='serial_number',
                     help='Serial number for specific device or devices.')
 parser.add_argument('-v | --version', action='store_true',
-                    default= False, dest='version_info',
+                    default=False, dest='version_info',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
@@ -101,6 +104,7 @@ def unlock(device):
   time.sleep(3)
   subprocess.check_call(["fastboot", "-s", device, "reboot"])
   print "Device unlocked"
+  time.sleep(10)#260
 
 def countdown(seconds):
   """Generates a countdown timer
@@ -206,13 +210,8 @@ def flashDevices(userBSP, device):
     userBSP: Path to the bsp image.
   """
   if not argParser.flash_device:
-    if os.popen("adb -s %s remount root" % device).read().endswith("denied\n"):
-      locked = raw_input("Device locked, would you like to unlock now? y/n ")
-      if locked == "y":
-        unlock(device)
-      else:
-        print "Not unlocking device. Quitting program."
-        quit()
+    if argParser.unlock_device:
+      unlock(device)
     print "Flashing %s ..." % device
     subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
     time.sleep(1)
@@ -257,8 +256,6 @@ def installApks(datePath, device, unzipPath):
         os.system("adb -s %s install -rd %s" % (device, app))
     print "Rebooting device. This takes about 45 seconds..."
     os.system("adb -s %s reboot" % device)
-    if device == lastDevice:
-      countdown(45)
 
 def rename():
   """Rename app names.
@@ -312,9 +309,8 @@ def main(devices=devices):
   appFile()
   for device in devices:
     flashDevices(bspPath + chrono(), device)
+  for device in devices:
     installApks(appDatePath, device, appUnzipPath)
-    print "The build is: ", subprocess.check_output(
-    ["adb", "-s", device, "shell", "getprop", "ro.build.type"])
   cleanup()
 
 
