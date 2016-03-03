@@ -210,8 +210,6 @@ def flashDevices(userBSP, device):
     userBSP: Path to the bsp image.
   """
   if not argParser.flash_device:
-    if argParser.unlock_device:
-      unlock(device)
     print "Flashing %s ..." % device
     subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
     time.sleep(1)
@@ -307,6 +305,9 @@ def chrono():
 def main(devices=devices):
   bspFile()
   appFile()
+  if argParser.unlock:
+    for device in devices:
+      unlock(device)
   for device in devices:
     flashDevices(bspPath + chrono(), device)
   for device in devices:
