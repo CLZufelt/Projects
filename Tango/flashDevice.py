@@ -104,7 +104,7 @@ def unlock(device):
   time.sleep(3)
   subprocess.check_call(["fastboot", "-s", device, "reboot"])
   print "Device unlocked"
-  time.sleep(10)#260
+  time.sleep(260)
 
 def countdown(seconds):
   """Generates a countdown timer
@@ -305,7 +305,7 @@ def chrono():
 def main(devices=devices):
   bspFile()
   appFile()
-  if argParser.unlock:
+  if argParser.unlock_device:
     for device in devices:
       unlock(device)
   for device in devices:
