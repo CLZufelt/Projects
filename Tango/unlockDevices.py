@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import time
 
 devices = [device[0]
   for device in [line.split("\t")
