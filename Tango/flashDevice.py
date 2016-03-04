@@ -104,7 +104,8 @@ def unlock(device):
   time.sleep(3)
   subprocess.check_call(["fastboot", "-s", device, "reboot"])
   print "Device unlocked"
-  time.sleep(260)
+  if device == lastDevice:
+    time.sleep(10)#260
 
 def countdown(seconds):
   """Generates a countdown timer
