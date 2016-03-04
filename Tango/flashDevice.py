@@ -309,7 +309,7 @@ def main(devices=devices):
     for device in devices:
       unlock(device)
   for device in devices:
-    flashDevices(bspPath + str(chrono()), device)
+    flashDevices(bspPath + chrono(), device)
   for device in devices:
     installApks(appDatePath, device, appUnzipPath)
   cleanup()
