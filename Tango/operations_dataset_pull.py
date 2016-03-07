@@ -12,8 +12,9 @@
 # which datasets have been previously downloaded using the adbfastpullbyserial
 # script.
 #
-# This script requires the pick library to be installed:
+# This script requires the pick and enum libraries to be installed:
 #   sudo pip install pick
+#   sudo pip install enum
 #
 ################################################################################
 

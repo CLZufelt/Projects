@@ -17,24 +17,27 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-build', action='store_true',
                     default=False, dest='user_build',
                     help='Set user build or user debug. Default user debug.')
+parser.add_argument('--nvflash', action='store_true',
+                    default=False, dest='nv_flash_device',
+                    help='NVflash device. Only works on Linux at the moment.')
 parser.add_argument('-f', action='store_true',
                     default=False, dest='flash_device',
-                    help='Do not flash device(s).')
+                    help='Flash device(s).')
 parser.add_argument('-u', action='store_true',
                     default=False, dest='unlock_device',
                     help='Unlock device.')
 parser.add_argument('-i', action='store_true',
                     default=False, dest='push_apps',
-                    help='Do not install apps or TangoCore.')
+                    help='Install apps and TangoCore.')
 parser.add_argument('-n', action='store_true',
                     default=False, dest='no_core',
                     help='Install apps, don\'t install TangoCore')
 parser.add_argument('-b', action='store_true',
                     default=False, dest='unzip_bsp',
-                    help="Do not unzip bsp image.")
+                    help="Unzip bsp image.")
 parser.add_argument('-a', action='store_true',
                     default=False, dest='unzip_apps',
-                    help='Do not unzip apps/TangoCore.')
+                    help='Unzip apps/TangoCore.')
 parser.add_argument('-c', action='store_true',
                     default=False, dest='tango_core',
                     help='Installs TangoCore and no apps.')
@@ -71,6 +74,7 @@ else:
 
 bspPath = rootpath + "bsp/"
 appPath = rootpath + "apps/"
+nvPath = bspPath, "out/target/product/ardbeg/"
 
 # Bsp's and apps are stored under a folder with the current date.
 bspDate = "ardbeg-img-" + datetime.date.today().strftime("%y%m%d")
@@ -103,9 +107,9 @@ def unlock(device):
   subprocess.call(['fastboot', '-s', device, 'oem', 'unlock'])
   time.sleep(3)
   subprocess.check_call(["fastboot", "-s", device, "reboot"])
-  print "Device unlocked"
+  print "~"*20, "Device unlocked, rebooting now","~"*20
   if device == lastDevice:
-    time.sleep(10)#260
+    time.sleep(260)
 
 def countdown(seconds):
   """Generates a countdown timer
@@ -152,53 +156,51 @@ def bspFile():
   Tells zipPath which .zip to unzip, and where to unzip it for bsp's.
   Capable of distinguishing between user-debug and user-build images.
   """
-  if not argParser.unzip_bsp:
-    if not argParser.user_build:
-      if not os.path.exists(debugDatePath):
-        print "Unzipping user-debug image to" + debugDatePath
-        zipPath("boot.img", debugDatePath)
-      else:
-        print "Image folder exists"
-        if len(glob.glob(debugDatePath + "/*")) > 0:
-          print "... and it has things in it."
-          overwrite = raw_input("Overwrite? (y/N)")
-          if overwrite.lower() == "y":
-            zipPath("boot.img", debugDatePath)
-        else:
-          print "... but it's empty."
-          zipPath("boot.img", debugDatePath)
+  if not argParser.user_build:
+    if not os.path.exists(debugDatePath):
+      print "Unzipping user-debug image to" + debugDatePath
+      zipPath("boot.img", debugDatePath)
     else:
-      if not os.path.exists(buildDatePath):
-        print "Unzipping user-build image to" + buildDatePath
-        zipPath("boot.img", buildDatePath)
+      print "Image folder exists"
+      if len(glob.glob(debugDatePath + "/*")) > 0:
+        print "... and it has things in it."
+        overwrite = raw_input("Overwrite? (y/N)")
+        if overwrite.lower() == "y":
+          zipPath("boot.img", debugDatePath)
       else:
-        print "Image folder exists"
-        if len(glob.glob(buildDatePath + "/*")) > 0:
-          print "... and it has things in it. We'll use what's in this folder."
-        else:
-          print "But it's empty, so we'll unzip here."
-          zipPath("boot.img", buildDatePath)
+        print "... but it's empty."
+        zipPath("boot.img", debugDatePath)
+  else:
+    if not os.path.exists(buildDatePath):
+      print "Unzipping user-build image to" + buildDatePath
+      zipPath("boot.img", buildDatePath)
+    else:
+      print "Image folder exists"
+      if len(glob.glob(buildDatePath + "/*")) > 0:
+        print "... and it has things in it. We'll use what's in this folder."
+      else:
+        print "But it's empty, so we'll unzip here."
+        zipPath("boot.img", buildDatePath)
 
 def appFile():
   """Uses zipPath to unzip the apps.
 
   Tells zipPath which .zip to unzip, and where to unzip it for apps.
   """
-  if not argParser.unzip_apps:
-    if not os.path.exists(appDatePath):
-      print "Unzipping apps to " + appDatePath
-      zipPath("Apps", appDatePath)
-    else:
-      print "App folder exists"
-      if len(glob.glob(appUnzipPath + "*.apk")) > 0:
-        print "And it's already full."
-        overwrite = raw_input("Overwrite? (y/N)")
-        if overwrite.lower() == "y":
-          for app in glob.glob(appUnzipPath + "*"):
-            os.remove(app)
-          zipPath("Apps", appDatePath)
-      else:
+  if not os.path.exists(appDatePath):
+    print "Unzipping apps to " + appDatePath
+    zipPath("Apps", appDatePath)
+  else:
+    print "App folder exists"
+    if len(glob.glob(appUnzipPath + "*.apk")) > 0:
+      print "And it's already full."
+      overwrite = raw_input("Overwrite? (y/N)")
+      if overwrite.lower() == "y":
+        for app in glob.glob(appUnzipPath + "*"):
+          os.remove(app)
         zipPath("Apps", appDatePath)
+    else:
+      zipPath("Apps", appDatePath)
   rename()
 
 def flashDevices(userBSP, device):
@@ -210,7 +212,7 @@ def flashDevices(userBSP, device):
   Args:
     userBSP: Path to the bsp image.
   """
-  if not argParser.flash_device:
+  if argParser.flash_device:
     print "Flashing %s ..." % device
     subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
     time.sleep(1)
@@ -231,6 +233,9 @@ def flashDevices(userBSP, device):
     if device == lastDevice:
       countdown(245)
 
+def nvFlash(device):
+  subprocess.check_call(["bash", nvPath + "flash.sh"])
+
 def installApks(datePath, device, unzipPath):
   """Install apps by serial number.
 
@@ -240,15 +245,15 @@ def installApks(datePath, device, unzipPath):
     datePath: Path to Apps and TangoCore.
     unzipPath: Path to apks.
   """
-  if not argParser.push_apps:
-    if not argParser.no_core:
+  if argParser.push_apps:
+    if argParser.no_core:
       if os.path.exists(datePath + "/SingleTangoFiles"):
         os.system("adb -s %s install -rd %s" %
                  (device, datePath + "/SingleTangoFiles/TangoCore*.apk"))
       elif os.path.exists(datePath + "/signedTangoCore"):
         os.system("adb -s %s install -rd %s" %
                  (device, datePath + "/signedTangoCore/TangoCore*.apk"))
-    if not argParser.tango_core:
+    if argParser.tango_core:
       print unzipPath
       for app in glob.glob(unzipPath + "*.apk"):
         print "Installing " + app
@@ -304,11 +309,16 @@ def chrono():
 
 
 def main(devices=devices):
-  bspFile()
-  appFile()
+  if argParser.unzip_bsp:
+    bspFile()
+  if argParser.unzip_apps:
+    appFile()
   if argParser.unlock_device:
     for device in devices:
       unlock(device)
+  if argParser.nv_flash_device:
+    for device in devices:
+      nvFlash(device)
   for device in devices:
     flashDevices(bspPath + chrono(), device)
   for device in devices:
