@@ -109,7 +109,7 @@ def unlock(device):
   subprocess.check_call(["fastboot", "-s", device, "reboot"])
   print "~"*20, "Device unlocked, rebooting now","~"*20
   if device == lastDevice:
-    time.sleep(260)
+    countdown(260)
 
 def countdown(seconds):
   """Generates a countdown timer
@@ -158,7 +158,7 @@ def bspFile():
   """
   if not argParser.user_build:
     if not os.path.exists(debugDatePath):
-      print "Unzipping user-debug image to" + debugDatePath
+      print "Unzipping user-debug image to " + debugDatePath
       zipPath("boot.img", debugDatePath)
     else:
       print "Image folder exists"
@@ -172,7 +172,7 @@ def bspFile():
         zipPath("boot.img", debugDatePath)
   else:
     if not os.path.exists(buildDatePath):
-      print "Unzipping user-build image to" + buildDatePath
+      print "Unzipping user-build image to " + buildDatePath
       zipPath("boot.img", buildDatePath)
     else:
       print "Image folder exists"
@@ -246,14 +246,14 @@ def installApks(datePath, device, unzipPath):
     unzipPath: Path to apks.
   """
   if argParser.push_apps:
-    if argParser.no_core:
+    if not argParser.no_core:
       if os.path.exists(datePath + "/SingleTangoFiles"):
         os.system("adb -s %s install -rd %s" %
                  (device, datePath + "/SingleTangoFiles/TangoCore*.apk"))
       elif os.path.exists(datePath + "/signedTangoCore"):
         os.system("adb -s %s install -rd %s" %
                  (device, datePath + "/signedTangoCore/TangoCore*.apk"))
-    if argParser.tango_core:
+    if not argParser.tango_core:
       print unzipPath
       for app in glob.glob(unzipPath + "*.apk"):
         print "Installing " + app
