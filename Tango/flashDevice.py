@@ -21,7 +21,7 @@ import time
 import zipfile
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-build', action='store_true',
+parser.add_argument('--build', action='store_true',
                     default=False, dest='user_build',
                     help='Set user build or user debug. Default user debug.')
 parser.add_argument('--nvflash', action='store_true',
@@ -335,7 +335,6 @@ def main(devices=devices):
     for device in devices:
       installApks(appDatePath, device, appUnzipPath)
     cleanup()
-  else:
 
 
 if __name__ == "__main__":
