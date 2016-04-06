@@ -8,6 +8,13 @@ import datetime
 import glob
 import os
 import platform
+try:
+  from pick import pick
+except ImportError:
+  print "Pick library missing, installing now using: 'sudo pip install pick'"
+  print "Script will restart after installation completes."
+  os.system("sudo pip install pick")
+  os.execv(__file__, sys.argv)
 import subprocess
 import sys
 import time
@@ -316,14 +323,19 @@ def main(devices=devices):
   if argParser.unlock_device:
     for device in devices:
       unlock(device)
-  if argParser.nv_flash_device:
+  title = "Are all devices ready to flash?"
+  options = ['yes', 'no']
+  nextStep = pick(options, title)
+  if nextStep == 0:
+    if argParser.nv_flash_device:
+      for device in devices:
+        nvFlash(device)
     for device in devices:
-      nvFlash(device)
-  for device in devices:
-    flashDevices(bspPath + chrono(), device)
-  for device in devices:
-    installApks(appDatePath, device, appUnzipPath)
-  cleanup()
+      flashDevices(bspPath + chrono(), device)
+    for device in devices:
+      installApks(appDatePath, device, appUnzipPath)
+    cleanup()
+  else:
 
 
 if __name__ == "__main__":
