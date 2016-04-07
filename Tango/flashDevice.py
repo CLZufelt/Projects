@@ -334,9 +334,9 @@ def main(devices=devices):
   if nextStep[1] == 0:
     for device in devices:
       flashDevices(bspPath + chrono(), device)
-    for device in devices:
-      installApks(appDatePath, device, appUnzipPath)
-    cleanup()
+  for device in devices:
+    installApks(appDatePath, device, appUnzipPath)
+  cleanup()
 
 
 if __name__ == "__main__":
