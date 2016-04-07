@@ -8,6 +8,10 @@ import datetime
 import glob
 import os
 import platform
+import subprocess
+import sys
+import time
+import zipfile
 try:
   from pick import pick
 except ImportError:
@@ -15,10 +19,6 @@ except ImportError:
   print "Script will restart after installation completes."
   os.system("sudo pip install pick")
   os.execv(__file__, sys.argv)
-import subprocess
-import sys
-import time
-import zipfile
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--build', action='store_true',
