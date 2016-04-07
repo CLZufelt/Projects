@@ -61,10 +61,6 @@ if argParser.version_info:
   print version
   quit()
 
-# Variables for use with Pick.
-title = "Are all devices ready to flash?"
-options = ['yes', 'no']
-
 # This makes it possible to run the script on a Mac the same as on Linux.
 whatami = platform.system()
 
@@ -224,7 +220,11 @@ def flashDevices(userBSP, device):
     userBSP: Path to the bsp image.
   """
   if argParser.flash_device:
+    title = "Is the device %s ready to flash?" % device
+    options = ['yes', 'no']
     nextStep = pick(options, title)
+    print nextStep
+    quit()
     if nextStep == 0:
       print "Flashing %s ..." % device
       subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
