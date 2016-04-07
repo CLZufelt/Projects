@@ -24,6 +24,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--build', action='store_true',
                     default=False, dest='user_build',
                     help='Set user build or user debug. Default user debug.')
+parser.add_argument('--reboot', action='store_true',
+                    default=False, dest='reboot',
+                    help='Reboot connected devices.')
 parser.add_argument('--nvflash', action='store_true',
                     default=False, dest='nv_flash_device',
                     help='NVflash device. Only works on Linux at the moment.')
@@ -56,7 +59,7 @@ parser.add_argument('-v | --version', action='store_true',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "2.4"
+version = "3.0"
 if argParser.version_info:
   print version
   quit()
@@ -324,6 +327,10 @@ def chrono():
       else:
         return "ardbeg-img-%s-user-debug" % item
 
+def reboot(devices):
+  for device in devices:
+    os.system('adb -s %s reboot' % device)
+
 
 def main(devices=devices):
   if argParser.unzip_bsp:
@@ -344,6 +351,8 @@ def main(devices=devices):
       flashDevices(bspPath + chrono(), device)
   for device in devices:
     installApks(appDatePath, device, appUnzipPath)
+  if argParser.reboot:
+    reboot(devices)
   cleanup()
 
 
