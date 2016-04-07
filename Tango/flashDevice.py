@@ -261,11 +261,13 @@ def installApks(datePath, device, unzipPath):
         os.system("adb -s %s install -rd %s" %
                  (device, datePath + "/signedTangoCore/TangoCore*.apk"))
       else:
-        title = "No tango core found. Continue with apps?"
+        title = "No tango core found. Continue installing apps?"
         options = ['yes', 'no']
         nextStep = pick(options,title)
         if nextStep[1] == 1:
           exit(1)
+        else:
+          print "Skipping TangoCore, installing apps."
     if not argParser.tango_core:
       print unzipPath
       for app in glob.glob(unzipPath + "*.apk"):
