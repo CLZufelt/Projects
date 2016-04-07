@@ -223,9 +223,9 @@ def flashDevices(userBSP, device):
     title = "Is the device %s ready to flash?" % device
     options = ['yes', 'no']
     nextStep = pick(options, title)
-    print nextStep
+    print nextStep[1]
     quit()
-    if nextStep == 0:
+    if nextStep[1] == 0:
       print "Flashing %s ..." % device
       subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
       time.sleep(1)
