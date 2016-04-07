@@ -21,7 +21,6 @@
 import argparse
 import calendar
 import datetime
-from enum import Enum
 import fnmatch
 import os
 import platform
@@ -32,12 +31,19 @@ import tarfile
 import threading
 import time
 try:
+  from enum import Enum
+except ImportError:
+  print "Enum library missing, installing now using: 'sudo pip install enum'"
+  print "Script will restart after installation completes."
+  os.system("sudo pip install enum")
+  os.execv(__file__,sys.argv)
+try:
   from pick import pick
 except ImportError:
   print "Pick library missing, installing now using: 'sudo pip install pick'"
-  print "Restart script after installation completes."
+  print "Script will restart after installation completes."
   os.system("sudo pip install pick")
-  exit(-1)
+  os.execv(__file__,sys.argv)
 
 
 # In order to decide if we need to ask the user once for the location of the
