@@ -288,16 +288,18 @@ def rename():
 def cleanup():
   """Gives the user the option to delete .zip folders from Downloads."""
   if glob.glob(zipFilePath) > 0:
-    removeApp = raw_input("Remove app zip? (y/N)")
-    removeBsp = raw_input("Remove bsp zip? (y/N)")
-    if "y" in removeApp.lower():
-      for zip in glob.glob(zipFilePath):
-        if "documents" in zip:
-          os.remove(zip)
-    if "y" in removeBsp.lower():
-      for zip in glob.glob(zipFilePath):
-        if "ardbeg" in zip:
-          os.remove(zip)
+    if argParser.unzip_apps:
+      removeApp = raw_input("Remove app zip? (y/N)")
+      if "y" in removeApp.lower():
+        for zip in glob.glob(zipFilePath):
+          if "documents" in zip:
+            os.remove(zip)
+    if argParser.unzip_bsp:
+      removeBsp = raw_input("Remove bsp zip? (y/N)")
+      if "y" in removeBsp.lower():
+        for zip in glob.glob(zipFilePath):
+          if "ardbeg" in zip:
+            os.remove(zip)
 
 
 def chrono():
