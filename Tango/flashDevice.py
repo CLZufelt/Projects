@@ -220,29 +220,25 @@ def flashDevices(userBSP, device):
     userBSP: Path to the bsp image.
   """
   if argParser.flash_device:
-    title = "Is the device %s ready to flash?" % device
-    options = ['yes', 'no']
-    nextStep = pick(options, title)
-    if nextStep[1] == 0:
-      print "Flashing %s ..." % device
-      subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
-      time.sleep(1)
-      subprocess.check_call(["fastboot", "-s", device, "flash",
-                  "bootloader", userBSP + "/bootloader.bin"])
-      subprocess.check_call(["fastboot", "-s", device, "flash", "dtb",
-                  userBSP + "/tegra124-ardbeg.dtb"])
-      subprocess.check_call(["fastboot", "-s", device, "flash", "boot",
-                  userBSP + "/boot.img"])
-      subprocess.check_call(["fastboot", "-s", device, "flash", "system",
-                  userBSP + "/system.img"])
-      subprocess.check_call(["fastboot", "-s", device, "flash", "recovery",
-                  userBSP + "/recovery.img"])
-      subprocess.check_call(["fastboot", "-s", device, "-w"])
-      subprocess.check_call(["fastboot", "-s", device, "reboot"])
-      print "~"*25 + "Flash Finished for device " + device + "~"*25
-      print "Device will now reboot. This takes about 4 minutes."
-      if device == lastDevice:
-        countdown(245)
+    print "Flashing %s ..." % device
+    subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
+    time.sleep(1)
+    subprocess.check_call(["fastboot", "-s", device, "flash",
+                "bootloader", userBSP + "/bootloader.bin"])
+    subprocess.check_call(["fastboot", "-s", device, "flash", "dtb",
+                userBSP + "/tegra124-ardbeg.dtb"])
+    subprocess.check_call(["fastboot", "-s", device, "flash", "boot",
+                userBSP + "/boot.img"])
+    subprocess.check_call(["fastboot", "-s", device, "flash", "system",
+                userBSP + "/system.img"])
+    subprocess.check_call(["fastboot", "-s", device, "flash", "recovery",
+                userBSP + "/recovery.img"])
+    subprocess.check_call(["fastboot", "-s", device, "-w"])
+    subprocess.check_call(["fastboot", "-s", device, "reboot"])
+    print "~"*25 + "Flash Finished for device " + device + "~"*25
+    print "Device will now reboot. This takes about 4 minutes."
+    if device == lastDevice:
+      countdown(245)
 
 def nvFlash(device):
   subprocess.check_call(["bash", nvPath + "flash.sh"])
@@ -332,11 +328,15 @@ def main(devices=devices):
   if argParser.nv_flash_device:
     for device in devices:
       nvFlash(device)
-  for device in devices:
-    flashDevices(bspPath + chrono(), device)
-  for device in devices:
-    installApks(appDatePath, device, appUnzipPath)
-  cleanup()
+  title = "Are all devices ready to flash?"
+  options = ['yes', 'no']
+  nextStep = pick(options, title)
+  if nextStep[1] == 0:
+    for device in devices:
+      flashDevices(bspPath + chrono(), device)
+    for device in devices:
+      installApks(appDatePath, device, appUnzipPath)
+    cleanup()
 
 
 if __name__ == "__main__":
