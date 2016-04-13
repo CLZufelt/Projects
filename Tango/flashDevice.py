@@ -17,8 +17,12 @@ try:
 except ImportError:
   print "Pick library missing, installing now using: 'sudo pip install pick'"
   print "Script will restart after installation completes."
-  os.system("sudo pip install pick")
-  os.execv(__file__, sys.argv)
+  try:
+    os.system("sudo pip install pick")
+  except OSError:
+    os.system("sudo easy_install pip")
+    os.system("sudo pip install pick")
+    os.execv(__file__, sys.argv)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--build', action='store_true',
@@ -93,9 +97,13 @@ appDate = datetime.date.today().strftime("%Y%m%d")
 buildDatePath = bspPath + bspDate + "-user-build"
 debugDatePath = bspPath + bspDate + "-user-debug"
 
-appDatePath = appPath + appDate + "-" + \
-raw_input("An abbreviation representing the current build, please:").upper()
-appUnzipPath = appDatePath + "/Apps/"
+if argParser.push_apps or argParser.unzip_apps:
+  appDatePath = appPath + appDate + "-" + \
+  raw_input("An abbreviation representing the current build, please:").upper()
+  appUnzipPath = appDatePath + "/Apps/"
+else:
+  appDatePath = appPath + appDate + "-"
+  appUnzipPath = appDatePath + "/Apps/"
 
 zipFilePath = downloads + "*.zip"
 
@@ -222,26 +230,25 @@ def flashDevices(userBSP, device):
   Args:
     userBSP: Path to the bsp image.
   """
-  if argParser.flash_device:
-    print "Flashing %s ..." % device
-    subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
-    time.sleep(1)
-    subprocess.check_call(["fastboot", "-s", device, "flash",
-                "bootloader", userBSP + "/bootloader.bin"])
-    subprocess.check_call(["fastboot", "-s", device, "flash", "dtb",
-                userBSP + "/tegra124-ardbeg.dtb"])
-    subprocess.check_call(["fastboot", "-s", device, "flash", "boot",
-                userBSP + "/boot.img"])
-    subprocess.check_call(["fastboot", "-s", device, "flash", "system",
-                userBSP + "/system.img"])
-    subprocess.check_call(["fastboot", "-s", device, "flash", "recovery",
-                userBSP + "/recovery.img"])
-    subprocess.check_call(["fastboot", "-s", device, "-w"])
-    subprocess.check_call(["fastboot", "-s", device, "reboot"])
-    print "~"*25 + "Flash Finished for device " + device + "~"*25
-    print "Device will now reboot. This takes about 4 minutes."
-    if device == lastDevice:
-      countdown(245)
+  print "Flashing %s ..." % device
+  subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
+  time.sleep(1)
+  subprocess.check_call(["fastboot", "-s", device, "flash",
+              "bootloader", userBSP + "/bootloader.bin"])
+  subprocess.check_call(["fastboot", "-s", device, "flash", "dtb",
+              userBSP + "/tegra124-ardbeg.dtb"])
+  subprocess.check_call(["fastboot", "-s", device, "flash", "boot",
+              userBSP + "/boot.img"])
+  subprocess.check_call(["fastboot", "-s", device, "flash", "system",
+              userBSP + "/system.img"])
+  subprocess.check_call(["fastboot", "-s", device, "flash", "recovery",
+              userBSP + "/recovery.img"])
+  subprocess.check_call(["fastboot", "-s", device, "-w"])
+  subprocess.check_call(["fastboot", "-s", device, "reboot"])
+  print "~"*25 + "Flash Finished for device " + device + "~"*25
+  print "Device will now reboot. This takes about 4 minutes."
+  if device == lastDevice:
+    countdown(245)
 
 def nvFlash(device):
   subprocess.check_call(["bash", nvPath + "flash.sh"])
@@ -255,29 +262,20 @@ def installApks(datePath, device, unzipPath):
     datePath: Path to Apps and TangoCore.
     unzipPath: Path to apks.
   """
-  if argParser.push_apps:
-    if not argParser.no_core:
-      if os.path.exists(datePath + "/SingleTangoFiles"):
-        os.system("adb -s %s install -rd %s" %
-                 (device, datePath + "/SingleTangoFiles/TangoCore*.apk"))
-      elif os.path.exists(datePath + "/signedTangoCore"):
-        os.system("adb -s %s install -rd %s" %
-                 (device, datePath + "/signedTangoCore/TangoCore*.apk"))
-      else:
-        title = "No tango core found. Continue installing apps?"
-        options = ['yes', 'no']
-        nextStep = pick(options,title)
-        if nextStep[1] == 1:
-          exit(1)
-        else:
-          print "Skipping TangoCore, installing apps."
-    if not argParser.tango_core:
-      print unzipPath
-      for app in glob.glob(unzipPath + "*.apk"):
-        print "Installing " + app
-        os.system("adb -s %s install -rd %s" % (device, app))
-    print "Rebooting device. This takes about 45 seconds..."
-    os.system("adb -s %s reboot" % device)
+  if not argParser.no_core:
+    if os.path.exists(datePath + "/SingleTangoFiles"):
+      os.system("adb -s %s install -rd %s" %
+               (device, datePath + "/SingleTangoFiles/TangoCore*.apk"))
+    elif os.path.exists(datePath + "/signedTangoCore"):
+      os.system("adb -s %s install -rd %s" %
+               (device, datePath + "/signedTangoCore/TangoCore*.apk"))
+    else:
+      print "No Tango Core found, skipping this step."
+  if not argParser.tango_core:
+    for app in glob.glob(unzipPath + "*.apk"):
+      os.system("adb -s %s install -rd %s" % (device, app))
+  print "Rebooting device: %s. This takes about 45 seconds..." % device
+  os.system("adb -s %s reboot" % device)
 
 def rename():
   """Rename app names.
@@ -341,16 +339,22 @@ def main(devices=devices):
     for device in devices:
       unlock(device)
   if argParser.nv_flash_device:
+    nv_title = 'This will nvFlash your device, are you sure?'
+    nv_options = ['yes','no']
+    _, nv_flash = pick(nv_options, nv_title)
+    if nv_flash == 0:
+      for device in devices:
+        nvFlash(device)
+  if argParser.flash_device:
+    title = "Are all devices ready to flash?"
+    options = ['yes', 'no']
+    _, nextStep = pick(options, title)
+    if nextStep == 0:
+      for device in devices:
+        flashDevices(bspPath + chrono(), device)
+  if argParser.push_apps or argParser.tango_core:
     for device in devices:
-      nvFlash(device)
-  title = "Are all devices ready to flash?"
-  options = ['yes', 'no']
-  nextStep = pick(options, title)
-  if nextStep[1] == 0:
-    for device in devices:
-      flashDevices(bspPath + chrono(), device)
-  for device in devices:
-    installApks(appDatePath, device, appUnzipPath)
+      installApks(appDatePath, device, appUnzipPath)
   if argParser.reboot:
     reboot(devices)
   cleanup()
