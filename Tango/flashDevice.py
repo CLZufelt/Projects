@@ -63,7 +63,7 @@ parser.add_argument('-v | --version', action='store_true',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "3.1"
+version = "3.2"
 if argParser.version_info:
   print version
   quit()
@@ -97,21 +97,21 @@ appDate = datetime.date.today().strftime("%Y%m%d")
 buildDatePath = bspPath + bspDate + "-user-build"
 debugDatePath = bspPath + bspDate + "-user-debug"
 
+incrementer = ""
+
 if argParser.push_apps or argParser.unzip_apps:
-  appDatePath = appPath + appDate + "-" + \
-  raw_input("An abbreviation representing the current build, please:").upper()
-  appUnzipPath = appDatePath + "/Apps/"
-else:
-  appDatePath = appPath + appDate + "-"
-  appUnzipPath = appDatePath + "/Apps/"
+  incrementer = raw_input("An abbreviation representing the current"
+                          " build, please:").upper()
+appDatePath = appPath + appDate + "-" + incrementer
+appUnzipPath = appDatePath + "/Apps/"
 
 zipFilePath = downloads + "*.zip"
 
 # Creates a list with the device serial numbers.
 devices = [device[0]
-          for device in [line.split("\t")
-          for line in os.popen('adb devices').read().split("\n")
-          if len(line.split("\t")) == 2]]
+           for device in [line.split("\t")
+           for line in os.popen('adb devices').read().split("\n")
+           if len(line.split("\t")) == 2]]
 if len(devices) > 0:
   lastDevice = devices[-1]
 
@@ -326,13 +326,13 @@ def BSPChrono():
         return "ardbeg-img-%s-user-debug" % item
 
 def AppChrono():
-  datelist = []
   exclude = appPath + "_install_all_apps.sh"
-  applist = [x for x in glob.glob(appPath + "*") if not x.endswith(exclude)]
-  for i in range(len(applist)):
-    datelist.append(
-      applist[i][applist[i].find]
-    )
+  applist = [y.split('-')[0] for y in
+             [x.split("/")[-1] for x in glob.glob(appPath + "*")
+             if not x.endswith(exclude)] if y.endswith(incrementer)]
+  applist = sorted(applist)
+  return max(applist)
+
 
 def reboot(devices):
   for device in devices:
@@ -363,7 +363,7 @@ def main(devices=devices):
         flashDevices(bspPath + BSPChrono(), device)
   if argParser.push_apps or argParser.tango_core:
     for device in devices:
-      installApks(appDatePath, device, appUnzipPath)
+      installApks(AppChrono() + "-" + incrementer, device, appUnzipPath)
   if argParser.reboot:
     reboot(devices)
   cleanup()
