@@ -10,19 +10,25 @@ parser.add_argument('-s', action='store', nargs="*",
                   dest='serial_number',
                   help='Serial number for specific device or devices.')
 parser.add_argument('--push', action='store', nargs='*',
-                  dest='push_name',
+                  dest='push',
                   help='Provide file to push, and location on device to push to'
                        '\nEx: test.txt sdcard/Photos/')
 parser.add_argument('--pull', action='store', nargs='*',
-                  dest='pull_name',
+                  dest='pull',
                   help='Provide file(s) to pull, and destination'
                        '\nEx: sdcard/Photos/ ~/Pictures')
+parser.add_argument('--install', action='store_true',
+                    default=False, dest='install',
+                    help='Install app(s) to all devices.')
+parser.add_argument('--reboot', action='store_true',
+                    default=False, dest='reboot',
+                    help='Reboot all connected devices.')
 parser.add_argument('-v | --version', action='store_true',
                   default=False, dest='version_info',
                   help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = 1.0
+version = 1.2
 
 devices = [device[0]
           for device in [line.split("\t")
@@ -37,21 +43,27 @@ if argParser.serial_number:
 
 
 def push():
-  fileName = argParser.push_name[0]
-  destination = argParser.push_name[1]
+  fileName = argParser.push[0]
+  destination = argParser.push[1]
   for serial in devices:
     os.system("adb -s %s root" % serial)
+  if len(devices) > 2:
     time.sleep(1)
-    os.system("adb -s %s remount ; adb -s %s push %s %s" %
-             (serial, serial, fileName, destination))
+  for serial in devices:
+    os.system("adb -s %s remount" % serial)
+  for serial in devices:
+    os.system("adb -s %s push %s %s" % (serial, fileName, destination))
 
 def pull():
-  fileName = argParser.pull_name[0]
-  destination = argParser.pull_name[1]
+  fileName = argParser.pull[0]
+  destination = argParser.pull[1]
   for serial in devices:
     os.system("adb -s %s root" % serial)
+  if len(devices) > 2:
     time.sleep(1)
+  for serial in devices:
     os.system('adb -s %s remount' % serial)
+  for serial in devices:
     os.system("adb -s %s pull %s %s"%
              (serial, fileName, destination))
 
@@ -65,7 +77,7 @@ def install():
   for serial in devices:
      os.system("adb -s %s install -rd %s" % (serial, fileName))
 
-if argParser.file_name:
+if argParser.push:
   push()
 if argParser.reboot:
   reboot()
