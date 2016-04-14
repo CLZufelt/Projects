@@ -1,7 +1,21 @@
 #!/usr/bin/python
+# Copyright 2016 Google Inc. All Rights Reserved.
+# Distributed under the Project Tango Preview Development Kit (PDK) Agreement.
+# CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
 
-# Author: charlesz@google.com
-# Trademark Google Inc., all rights reserved
+# Authors: charlesz@google.com, slynen@google.com
+
+################################################################################
+# This script is used by ops for flashing devices with a system image,
+# installing apk's en masse, nvflashing when needed, unlocking devices when
+# needed, and finally restarting the device so that changes may take effect.
+# This script will also unzip packed app and bsp folders to be used in flashing/
+# installing.
+#
+# This script requires the pick library to be installed:
+#   sudo pip install pick
+#
+################################################################################
 
 import argparse
 import datetime
