@@ -35,7 +35,11 @@ try:
 except ImportError:
   print "Enum library missing, installing now using: 'sudo pip install enum'"
   print "Script will restart after installation completes."
-  os.system("sudo pip install enum")
+  try:
+    os.system("sudo pip install enum")
+  except OSError:
+    os.system("sudo easy_install pip")
+    os.system("sudo pip install enum")
   os.execv(__file__,sys.argv)
 try:
   from pick import pick
@@ -43,6 +47,11 @@ except ImportError:
   print "Pick library missing, installing now using: 'sudo pip install pick'"
   print "Script will restart after installation completes."
   os.system("sudo pip install pick")
+  try:
+    os.system("sudo pip install enum")
+  except OSError:
+    os.system("sudo easy_install pip")
+    os.system("sudo pip install enum")
   os.execv(__file__,sys.argv)
 
 

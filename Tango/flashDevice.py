@@ -59,28 +59,25 @@ parser.add_argument('-i', action='store_true',
                     help='Install apps and TangoCore.')
 parser.add_argument('-n', action='store_true',
                     default=False, dest='no_core',
-                    help='Install apps, don\'t install TangoCore')
+                    help='Install apps and do not install TangoCore')
+parser.add_argument('-c', action='store_true',
+                    default=False, dest='tango_core',
+                    help='Installs TangoCore and no apps.')
 parser.add_argument('-b', action='store_true',
                     default=False, dest='unzip_bsp',
                     help="Unzip bsp image.")
 parser.add_argument('-a', action='store_true',
                     default=False, dest='unzip_apps',
                     help='Unzip apps/TangoCore.')
-parser.add_argument('-c', action='store_true',
-                    default=False, dest='tango_core',
-                    help='Installs TangoCore and no apps.')
 parser.add_argument('-s', action='store', nargs="*",
                     dest='serial_number',
                     help='Serial number for specific device or devices.')
-parser.add_argument('-v | --version', action='store_true',
+parser.add_argument('-v', action='store_true',
                     default=False, dest='version_info',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
 version = "3.2"
-if argParser.version_info:
-  print version
-  quit()
 
 # This makes it possible to run the script on a Mac the same as on Linux.
 whatami = platform.system()
@@ -354,6 +351,8 @@ def reboot(devices):
 
 
 def main(devices=devices):
+  if argParser.version_info:
+    print version
   if argParser.unzip_bsp:
     bspFile()
   if argParser.unzip_apps:
