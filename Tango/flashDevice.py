@@ -63,7 +63,7 @@ parser.add_argument('-v | --version', action='store_true',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "3.0"
+version = "3.1"
 if argParser.version_info:
   print version
   quit()
@@ -305,7 +305,7 @@ def cleanup():
             os.remove(zip)
 
 
-def chrono():
+def BSPChrono():
   """Determine the most recent bsp image for flashing."""
   datelist = []
   if argParser.user_build:
@@ -324,6 +324,15 @@ def chrono():
         return "ardbeg-img-%s-user-build" % item
       else:
         return "ardbeg-img-%s-user-debug" % item
+
+def AppChrono():
+  datelist = []
+  exclude = appPath + "_install_all_apps.sh"
+  applist = [x for x in glob.glob(appPath + "*") if not x.endswith(exclude)]
+  for i in range(len(applist)):
+    datelist.append(
+      applist[i][applist[i].find]
+    )
 
 def reboot(devices):
   for device in devices:
@@ -351,7 +360,7 @@ def main(devices=devices):
     _, nextStep = pick(options, title)
     if nextStep == 0:
       for device in devices:
-        flashDevices(bspPath + chrono(), device)
+        flashDevices(bspPath + BSPChrono(), device)
   if argParser.push_apps or argParser.tango_core:
     for device in devices:
       installApks(appDatePath, device, appUnzipPath)
