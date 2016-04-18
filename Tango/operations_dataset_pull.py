@@ -55,6 +55,31 @@ except ImportError:
   os.execv(__file__,sys.argv)
 
 
+# Check if a given executable is installed on the system.
+def has_executable(program):
+  import os
+  def is_exe(fpath):
+    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+  fpath, fname = os.path.split(program)
+  if fpath:
+    if is_exe(program):
+      return program
+  else:
+    for path in os.environ["PATH"].split(os.pathsep):
+      path = path.strip('"')
+      exe_file = os.path.join(path, program)
+      if is_exe(exe_file):
+        return exe_file
+
+  return None
+
+# Ensure we have gsutil installed.
+if not has_executable('gsutil'):
+  print ("gsutil executable is missing. Please visit "
+    "https://cloud.google.com/storage/docs/gsutil_install for instructions.")
+  exit(-1)
+
 # In order to decide if we need to ask the user once for the location of the
 # collect or for every dataset individually.
 class DatasetOrigin(Enum):
@@ -113,6 +138,7 @@ def list_datasets_on_device(serial, application_data_space):
       exit(1)
   if raw_data[0].endswith("No such file or directory"):
     print "This device, %s, has no datasets to pull." % serial
+    return None
   return raw_data
 
 
@@ -379,10 +405,11 @@ def upload_folder_recursive(source_dir, bucket_name, subdir):
   # First we check that the remote directory exists (this seems to be necessary
   # on osx).
   marker_file_name = os.path.join(source_dir, "upload_started")
-  with open(marker_file_name, "w") as marker_file:
-    marker_file.write("upload started")
+  open(marker_file_name, "a").close()
   command = ["gsutil", "cp", marker_file_name,
              destination_dir + "/upload_started"]
+  print "Running bucket touch command: %s" % " ".join(command)
+  subprocess.call(command)
 
   command = ["gsutil", "-m", "rsync", "-r", source_dir, destination_dir]
   print "Running upload command: %s" % " ".join(command)
@@ -612,8 +639,8 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
           "Dataset %s with ID %s is an orphaned dataset, associated to adf-ID: %s"
           % (dataset_information["dataset_dir"], dataset_id, matching_adf_uuid))
       is_navigation_dataset = False
-      # Copy the flp data to the navigation dataset directory if it is in the
-      # root annotations folder.
+  # Copy the flp data to the navigation dataset directory if it is in the
+  # root annotations folder.
       copy_from = os.path.join(annotations_directory, dataset_id + "-flp")
       dir_copy_to = os.path.join(annotations_directory, matching_adf_uuid)
       copy_to = os.path.join(dir_copy_to, dataset_id + "-flp")
@@ -626,7 +653,7 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
       dataset_collection_groups[matching_adf_uuid] = {"navigation_dataset": {},
                                                       "coverage_datasets": []}
 
-    # Store all information about the dataset and assign coverage datasets to the corresponding navigation dataset.
+  # Store all information about the dataset and assign coverage datasets to the corresponding navigation dataset.
     if is_navigation_dataset:
       dataset_collection_groups[matching_adf_uuid][
           "navigation_dataset"] = {"dataset_id": dataset_id,
@@ -636,9 +663,9 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
           {"dataset_id": dataset_id,
            "dataset_information": dataset_information})
 
-    # If everything goes south, there can be adf uuids that list coverage datasets,
-    # but no navigation dataset. We give the user the possibility to just assign
-    # the coverage datasets to a different navigation dataset.
+  # If everything goes south, there can be adf uuids that list coverage datasets,
+  # but no navigation dataset. We give the user the possibility to just assign
+  # the coverage datasets to a different navigation dataset.
   list_of_healthy_nav_datasets = []
   list_of_healthy_nav_dataset_names = []
   for adf_uuid, dataset_collection in dataset_collection_groups.iteritems():
@@ -664,9 +691,9 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
       dataset_collection_groups[adf_uuid][
           "navigation_dataset"] = list_of_healthy_nav_datasets[index][1]
 
-    ##############################################################################
-    # For all dataset groups copy together the annotation files and upload data.
-    # Now copy the annotation files to the output directory of the corresponding dataset.
+  ##############################################################################
+  # For all dataset groups copy together the annotation files and upload data.
+  # Now copy the annotation files to the output directory of the corresponding dataset.
   for adf_uuid, dataset_collection in dataset_collection_groups.iteritems():
     print "Working on adf uuid %s" % adf_uuid
     navigation_dataset = dataset_collection["navigation_dataset"]
@@ -747,8 +774,7 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
   # Now release the entire data collection for processing, by marking the upload as complete.
     print "Marking the dataset %s as complete." % navigation_dataset_dir
     marker_file_name = os.path.join(navigation_dataset_dir, "upload_complete")
-    with open(marker_file_name, "w") as marker_file:
-      marker_file.write("upload complete")
+    open(marker_file_name, "a").close()
     bucket_destination = os.path.join(cloud_bucket_name, venue,
                                       navigation_dataset_uuid)
     command = ["gsutil", "cp", marker_file_name,

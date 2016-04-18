@@ -47,8 +47,7 @@ def push():
   destination = argParser.push[1]
   for serial in devices:
     os.system("adb -s %s root" % serial)
-  if len(devices) > 2:
-    time.sleep(1)
+  time.sleep(1)
   for serial in devices:
     os.system("adb -s %s remount" % serial)
   for serial in devices:
@@ -59,8 +58,7 @@ def pull():
   destination = argParser.pull[1]
   for serial in devices:
     os.system("adb -s %s root" % serial)
-  if len(devices) > 2:
-    time.sleep(1)
+  time.sleep(1)
   for serial in devices:
     os.system('adb -s %s remount' % serial)
   for serial in devices:

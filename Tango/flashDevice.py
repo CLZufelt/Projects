@@ -24,6 +24,7 @@ import os
 import platform
 import subprocess
 import sys
+import threading
 import time
 import zipfile
 try:
@@ -373,10 +374,17 @@ def main(devices=devices):
     _, nextStep = pick(options, title)
     if nextStep == 0:
       for device in devices:
-        flashDevices(bspPath + BSPChrono(), device)
+        flashThread = threading.Thread(target=flashDevices,
+                                  args=(bspPath + BSPChrono(), device))
+        flashThread.start()
+        #flashDevices(bspPath + BSPChrono(), device)
   if argParser.push_apps or argParser.tango_core:
     for device in devices:
-      installApks(AppChrono() + "-" + incrementer, device, appUnzipPath)
+      appThread = threading.Thread(target=installApks,
+                                   args=(AppChrono() + "-" + incrementer,
+                                   device, appUnzipPath))
+      appThread.start()
+      #installApks(AppChrono() + "-" + incrementer, device, appUnzipPath)
   if argParser.reboot:
     reboot(devices)
   cleanup()
