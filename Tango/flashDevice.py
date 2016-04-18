@@ -284,7 +284,8 @@ def installApks(datePath, device, unzipPath):
     else:
       print "No Tango Core found, skipping this step."
   if not argParser.tango_core:
-    for app in glob.glob(unzipPath + "*.apk"):
+    for app in glob.glob(datePath + "/Apps/*.apk"):
+      print app
       os.system("adb -s %s install -rd %s" % (device, app))
   print "Rebooting device: %s. This takes about 45 seconds..." % device
   os.system("adb -s %s reboot" % device)
@@ -343,7 +344,7 @@ def AppChrono():
              [x.split("/")[-1] for x in glob.glob(appPath + "*")
              if not x.endswith(exclude)] if y.endswith(incrementer)]
   applist = sorted(applist)
-  return max(applist)
+  return appPath + max(applist)
 
 
 def reboot(devices):
@@ -377,6 +378,7 @@ def main(devices=devices):
         flashThread = threading.Thread(target=flashDevices,
                                   args=(bspPath + BSPChrono(), device))
         flashThread.start()
+        flashThread.join()
         #flashDevices(bspPath + BSPChrono(), device)
   if argParser.push_apps or argParser.tango_core:
     for device in devices:
@@ -384,6 +386,7 @@ def main(devices=devices):
                                    args=(AppChrono() + "-" + incrementer,
                                    device, appUnzipPath))
       appThread.start()
+      appThread.join()
       #installApks(AppChrono() + "-" + incrementer, device, appUnzipPath)
   if argParser.reboot:
     reboot(devices)
