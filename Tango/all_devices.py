@@ -23,6 +23,9 @@ parser.add_argument('--install', action='store_true',
 parser.add_argument('--reboot', action='store_true',
                     default=False, dest='reboot',
                     help='Reboot all connected devices.')
+parser.add_argument('--shutdown', action='store_true',
+                    default=False, dest='shutdown',
+                    help='Shutdown all connected devices.')
 parser.add_argument('-v | --version', action='store_true',
                   default=False, dest='version_info',
                   help='Display version information, and nothing else.')
@@ -70,6 +73,11 @@ def reboot():
     print "Rebooting now."
     os.system("adb -s %s reboot" % serial)
 
+def shutdown():
+  for serial in devices:
+    print "Shutting down now."
+    os.system("adb -s %s shell 'reboot -p'" %serial)
+
 def install():
   fileName = argParser.install
   for serial in devices:
@@ -79,6 +87,8 @@ if argParser.push:
   push()
 if argParser.reboot:
   reboot()
+if argParser.shutdown:
+  shutdown()
 if argParser.install:
   install()
 if argParser.pull:
