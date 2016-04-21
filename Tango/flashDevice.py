@@ -3,7 +3,7 @@
 # Distributed under the Project Tango Preview Development Kit (PDK) Agreement.
 # CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
 
-# Authors: charlesz@google.com, slynen@google.com
+# Authors: charlesz@google.com
 
 ################################################################################
 # This script is used by ops for flashing devices with a system image,
@@ -78,7 +78,7 @@ parser.add_argument('-v', action='store_true',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "3.2"
+version = "3.5"
 
 # This makes it possible to run the script on a Mac the same as on Linux.
 whatami = platform.system()
