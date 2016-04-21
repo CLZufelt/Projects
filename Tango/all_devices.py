@@ -31,7 +31,7 @@ parser.add_argument('-v | --version', action='store_true',
                   help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = 1.2
+version = 1.3
 
 devices = [device[0]
           for device in [line.split("\t")
@@ -83,13 +83,17 @@ def install():
   for serial in devices:
      os.system("adb -s %s install -rd %s" % (serial, fileName))
 
-if argParser.push:
-  push()
-if argParser.reboot:
-  reboot()
-if argParser.shutdown:
-  shutdown()
-if argParser.install:
-  install()
-if argParser.pull:
-  pull()
+def main():
+  if argParser.push:
+    push()
+  if argParser.reboot:
+    reboot()
+  if argParser.shutdown:
+    shutdown()
+  if argParser.install:
+    install()
+  if argParser.pull:
+    pull()
+
+if __name__ == "__main__":
+  main()
