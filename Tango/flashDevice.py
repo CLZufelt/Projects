@@ -382,12 +382,7 @@ def main(devices=devices):
         #flashDevices(bspPath + BSPChrono(), device)
   if argParser.push_apps or argParser.tango_core:
     for device in devices:
-      appThread = threading.Thread(target=installApks,
-                                   args=(AppChrono() + "-" + incrementer,
-                                   device, appUnzipPath))
-      appThread.start()
-      appThread.join()
-      #installApks(AppChrono() + "-" + incrementer, device, appUnzipPath)
+      installApks(AppChrono() + "-" + incrementer, device, appUnzipPath)
   if argParser.reboot:
     reboot(devices)
   cleanup()
