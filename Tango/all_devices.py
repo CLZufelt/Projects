@@ -75,9 +75,9 @@ def update_library():
   file_to_push = 'libexternal_freak.so'
   destination = '/system/lib'
   for serial in devices:
-    os.system('adb root')
+    os.system('adb -s %s root' % serial)
     time.sleep(2)
-    os.system('adb remount')
+    os.system('adb -s %s remount' % serial)
     os.system('adb -s %s push %s %s' % (serial, file_to_push, destination))
 
 def reboot():
