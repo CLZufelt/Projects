@@ -17,6 +17,9 @@ parser.add_argument('--pull', action='store', nargs='*',
                   dest='pull',
                   help='Provide file(s) to pull, and destination'
                        '\nEx: sdcard/Photos/ ~/Pictures')
+parser.add_argument('--update', action='store_true',
+                    default=False, dest='update_library',
+                    help='Update library for all connected devices.')
 parser.add_argument('--install', action='store_true',
                     default=False, dest='install',
                     help='Install app(s) to all devices.')
@@ -68,6 +71,15 @@ def pull():
     os.system("adb -s %s pull %s %s"%
              (serial, fileName, destination))
 
+def update_library():
+  file_to_push = 'libexternal_freak.so'
+  destination = '/system/lib'
+  for serial in devices:
+    os.system('adb root')
+    time.sleep(2)
+    os.system('adb remount')
+    os.system('adb -s %s push %s %s' % (serial, file_to_push, destination))
+
 def reboot():
   for serial in devices:
     print "Rebooting now."
@@ -86,6 +98,8 @@ def install():
 def main():
   if argParser.push:
     push()
+  if argParser.update_library:
+    update_library()
   if argParser.reboot:
     reboot()
   if argParser.shutdown:
