@@ -70,6 +70,7 @@ parser.add_argument('-b', action='store_true',
 parser.add_argument('-a', action='store_true',
                     default=False, dest='unzip_apps',
                     help='Unzip apps/TangoCore.')
+#TODO Use pick for -s
 parser.add_argument('-s', action='store', nargs="*",
                     dest='serial_number',
                     help='Serial number for specific device or devices.')
@@ -181,6 +182,7 @@ def zipPath(searchTerm, destPath):
           break
 
 def bspFile():
+  #TODO Change date to date on the image, not today's date
   """Uses zipPath to unzip the bsp.
 
   Tells zipPath which .zip to unzip, and where to unzip it for bsp's.
@@ -361,7 +363,11 @@ def main(devices=devices):
     appFile()
   if argParser.unlock_device:
     for device in devices:
-      unlock(device)
+      unlockThread =threading.Thread(target=unlock,
+                                     args=(device))
+      unlockThread.start()
+      unlockThread.join()
+      #unlock(device)
   if argParser.nv_flash_device:
     nv_title = 'This will nvFlash your device, are you sure?'
     nv_options = ['yes','no']

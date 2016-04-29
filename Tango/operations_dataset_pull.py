@@ -12,9 +12,8 @@
 # which datasets have been previously downloaded using the adbfastpullbyserial
 # script.
 #
-# This script requires the pick and enum libraries to be installed:
+# This script requires the pick library to be installed:
 #   sudo pip install pick
-#   sudo pip install enum
 #
 ################################################################################
 
@@ -54,10 +53,12 @@ except ImportError:
     os.system("sudo pip install enum")
   os.execv(__file__,sys.argv)
 
-
 # Check if a given executable is installed on the system.
+
+
 def has_executable(program):
   import os
+
   def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -75,13 +76,16 @@ def has_executable(program):
   return None
 
 # Ensure we have gsutil installed.
-if not has_executable('gsutil'):
-  print ("gsutil executable is missing. Please visit "
-    "https://cloud.google.com/storage/docs/gsutil_install for instructions.")
+if not has_executable("gsutil"):
+  print(
+      "gsutil executable is missing. Please visit "
+      "https://cloud.google.com/storage/docs/gsutil_install for instructions.")
   exit(-1)
 
 # In order to decide if we need to ask the user once for the location of the
 # collect or for every dataset individually.
+
+
 class DatasetOrigin(Enum):
   SingleBuilding = 0
   MultipleBuildings = 1
@@ -94,10 +98,12 @@ class DatasetType(Enum):
   GroundTruth = 0
   Operations = 1
 
-
   # Timer that tells you how long it took to run a command.
+
+
 def countup(start_time):
   """Generates a count-up timer tells how long a command ran.
+
   Args:
     start_time: Time the command started at, stored in a variable, and passed.
     to countup().
@@ -112,7 +118,8 @@ def countup(start_time):
 
 # Obtain a list of the datasets that are available in the specified application
 # storage on a given device (specified by serial number).
-# application_data_space is the private app directory where the datasets are stored.
+# application_data_space is the private app directory where the datasets
+# are stored.
 def list_datasets_on_device(serial, application_data_space):
   get_raw_data = "adb -s %s shell ls %s" % (serial, application_data_space)
 
@@ -123,8 +130,7 @@ def list_datasets_on_device(serial, application_data_space):
 
   if not raw_data:
     title = (
-        "There is not a single dataset on device {0}, please double-check. ".format(
-            serial))
+        "There is not a single dataset on device {0}, please double-check. ".format(serial))
     pick(["OK"], title)
     return None
 
@@ -134,13 +140,28 @@ def list_datasets_on_device(serial, application_data_space):
     run_adb_command("adb -s %s remount" % serial)
     raw_data = list_datasets_on_device(serial, application_data_space)
     if raw_data[0].endswith("Permission denied"):
-      print "Error counld not get access to the device."
+      print "Error: could not get access to the device."
       exit(1)
   if raw_data[0].endswith("No such file or directory"):
     print "This device, %s, has no datasets to pull." % serial
     return None
   return raw_data
 
+# Check we have root access to the device.
+def ensure_root(serial):
+  run_adb_command("adb -s %s root" % serial)
+  time.sleep(3)
+  run_adb_command("adb -s %s remount" % serial)
+  
+  command = "adb -s %s shell ls %s" % (serial, "/data/data/")
+  directory_listing = os.popen(command).read()
+  raw_data = [line.split("\r")[0]
+              for line in directory_listing.split("\n")
+              if len(line.split("\r")) == 2]
+  
+  if raw_data[0].endswith("Permission denied"):
+    print "Error: could not get access to the device."
+    exit(1)
 
 # Get the date and time stamps from a given dataset string.
 def get_date_and_time_from_dataset_folder(data):
@@ -180,7 +201,7 @@ def make_output_dir(root_dir, venue, date_stamp, time_stamp):
 def run_adb_command(command):
   result = os.popen(command).readlines()
   if len(result) > 0:
-    print "ADB returned unexpected: %s" % result
+    print "ADB returned: %s" % result
 
 
 # Get the size of a file in bytes on device via adb.
@@ -191,9 +212,25 @@ def adb_get_file_size(device, file):
     return -1
   return int(file_size_raw[3])
 
+# Check if a file exists on device.
+
+
+def adb_file_exists(device, file):
+  get_filesize = "adb -s %s shell ls %s" % (device, file)
+  return not "No such file or directory" in os.popen(get_filesize).read()
+
+
+def make_calibration_file_pull_command(device, destination_dir, file_name):
+  return (
+      "adb -s %s pull %s %s" %
+      (device, os.path.join("/sdcard/config/", file_name),
+       os.path.join(destination_dir, file_name)),
+      os.path.join(destination_dir, file_name), -1)
 
 # Download a dataset from the given device and application folder and store it
 # into a folder defined by venue name, date and time.
+
+
 def adb_pull_dataset(root_dir, venue, device, application_space, dataset,
                      date_stamp, time_stamp):
   destination_dir = make_output_dir(root_dir, venue, date_stamp, time_stamp)
@@ -251,6 +288,21 @@ def adb_pull_dataset(root_dir, venue, device, application_space, dataset,
 
   destination_sensor_data_dir = os.path.join(destination_dir, data_sub_dir)
 
+  has_cad_calibration = (
+      adb_file_exists(
+          device,
+          os.path.join(pull_from, "cad-calibration.xml")))
+  has_factory_calibration = adb_file_exists(
+      device, os.path.join(pull_from, "calibration.xml"))
+  has_online_calibration = (
+      adb_file_exists(
+          device,
+          os.path.join(pull_from, "online-calibration.xml")))
+
+  print "Device %s has cad calibration %s" % (device, has_cad_calibration)
+  print "Device %s has factory calibration %s" % (device, has_factory_calibration)
+  print "Device %s has online calibration %s" % (device, has_online_calibration)
+
   # Parallel pull files. Skip those that area already on disk.
   for file_name in sensor_raw_data:
     file_source_path = os.path.join(dataset_pull_path, file_name)
@@ -272,6 +324,23 @@ def adb_pull_dataset(root_dir, venue, device, application_space, dataset,
       pull_commands.append(("adb -s %s pull %s %s" % (device, file_source_path,
                                                       file_destination_path),
                             file_destination_path, filesize))
+
+  # Also separately pull the calibration files from config.
+  if not has_cad_calibration:
+    pull_commands.append(
+        make_calibration_file_pull_command(
+            device, destination_dir,
+            "cad-calibration.xml"))
+  if not has_factory_calibration:
+    pull_commands.append(
+        make_calibration_file_pull_command(
+            device, destination_dir,
+            "calibration.xml"))
+  if not has_online_calibration:
+    pull_commands.append(
+        make_calibration_file_pull_command(
+            device, destination_dir,
+            "online-calibration.xml"))
 
   threads = []
   for command, file_destination_path, filesize in pull_commands:
@@ -398,8 +467,9 @@ def upload_folder(source_file, bucket_name, subdir):
   print "Running upload command: %s" % " ".join(command)
   subprocess.call(command)
 
-
   # Upload the contents of a folder and it's subfolders to GCS.
+
+
 def upload_folder_recursive(source_dir, bucket_name, subdir):
   destination_dir = "gs://{0}/{1}".format(bucket_name, subdir)
   # First we check that the remote directory exists (this seems to be necessary
@@ -515,10 +585,70 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
 
   available_navigation_datasets.append(backup_dataset)
 
+  # Only warn the user once.
+  warned_about_missing_online_calibration = False
+
   # Go over all datasets and gather information about alignment, type etc.
   for dataset_information in pulled_datasets:
     assert os.path.exists(dataset_information["dataset_dir"])
     print "Processing dataset: %s" % dataset_information["dataset_dir"]
+
+    # Verify that this device uses the HAL.
+    sensors_path = (
+        os.path.join(
+            dataset_information["dataset_dir"], "sensors"))
+    if os.path.exists(sensors_path):
+      title = (
+          "Device {:<} is not using TangoHAL. Non HAL datasets are not "
+          "supported and will be skipped.".format(dataset_information["device"]))
+      _, ok = pick(["OK"], title)
+      continue
+     
+    # Verify that the rosbag is there.
+    bag_file_path = (
+        os.path.join(
+            dataset_information["dataset_dir"],
+            "bag", "0001.bag"))
+    if not os.path.exists(bag_file_path):
+      title = (
+          "Dataset {:<} from device {:<} is missing the recorded dataset "
+          "information (bag-file). Skipping.".format(dataset_information["dataset_dir"], 
+                                                     dataset_information["device"]))
+      _, ok = pick(["OK"], title)
+      continue
+
+    # Check and warn if there is no online-calibration file.
+    online_calibration_file_path = (
+        os.path.join(
+            dataset_information["dataset_dir"],
+            "online-calibration.xml"))
+    if not warned_about_missing_online_calibration and \
+        not os.path.exists(online_calibration_file_path):
+      warned_about_missing_online_calibration = True
+      title = (
+          "Device {:<} is missing the online-calibration.xml file. "
+          "For best performance devices should be calibrated."
+          .format(dataset_information["device"]))
+      _, ok = pick(["Cancel", "OK"], title)
+      if ok == 0:
+        print "Aborting dataset download."
+        exit(-1)
+        
+    
+    # Check if there is no calibration file.
+    calibration_file_path = (
+        os.path.join(
+            dataset_information["dataset_dir"],
+            "calibration.xml"))
+    if not os.path.exists(calibration_file_path):
+      title = (
+          "Device {:<} is missing the calibration.xml file. "
+          "Please install the file into /sdcard/config/calibration.xml before "
+          "restarting this script.".format(dataset_information["device"]))
+      _, ok = pick(["OK"], title)
+      if ok == 0:
+        print "Aborting dataset download due to missing calibration."
+        exit(-1)
 
     # If running in ops mode, also copy the files from maps creator.
     # The metadata files such as FLP measurements, alignment data etc. are stored
@@ -581,15 +711,16 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
                   assert adf_metadata.find("feature") != -1
                   is_navigation_dataset = False
                   print(
-                      "Dataset %s with ID %s is a coverage dataset to adf-ID: %s"
-                      % (dataset_information["dataset_dir"], dataset_id,
-                         matching_adf_uuid))
+                      "Dataset %s with ID %s is a coverage dataset to adf-ID: %s" %
+                      (dataset_information["dataset_dir"], dataset_id,
+                       matching_adf_uuid))
                 break
 
     # Store the gathered information into the metadata.
     with open(metadata_file_path, "r") as metadata_file:
       all_meta = metadata_file.readlines()
-      # Append venue, time and date information to the metadata file if it's not there yet.
+      # Append venue, time and date information to the metadata file if it's not
+      # there yet.
       if not any("venue" in s for s in all_meta):
         with open(metadata_file_path, "a") as metadata_file_write:
           metadata_file_write.write("venue: %s\n" %
@@ -636,11 +767,12 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
 
       matching_adf_uuid = some_adf_uuid_of_venue
       print(
-          "Dataset %s with ID %s is an orphaned dataset, associated to adf-ID: %s"
-          % (dataset_information["dataset_dir"], dataset_id, matching_adf_uuid))
+          "Dataset %s with ID %s is an orphaned dataset, associated to adf-ID: %s" %
+          (dataset_information["dataset_dir"], dataset_id,
+           matching_adf_uuid))
       is_navigation_dataset = False
-  # Copy the flp data to the navigation dataset directory if it is in the
-  # root annotations folder.
+      # Copy the flp data to the navigation dataset directory if it is in the
+      # root annotations folder.
       copy_from = os.path.join(annotations_directory, dataset_id + "-flp")
       dir_copy_to = os.path.join(annotations_directory, matching_adf_uuid)
       copy_to = os.path.join(dir_copy_to, dataset_id + "-flp")
@@ -653,7 +785,8 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
       dataset_collection_groups[matching_adf_uuid] = {"navigation_dataset": {},
                                                       "coverage_datasets": []}
 
-  # Store all information about the dataset and assign coverage datasets to the corresponding navigation dataset.
+    # Store all information about the dataset and assign coverage datasets to
+    # the corresponding navigation dataset.
     if is_navigation_dataset:
       dataset_collection_groups[matching_adf_uuid][
           "navigation_dataset"] = {"dataset_id": dataset_id,
@@ -663,9 +796,9 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
           {"dataset_id": dataset_id,
            "dataset_information": dataset_information})
 
-  # If everything goes south, there can be adf uuids that list coverage datasets,
-  # but no navigation dataset. We give the user the possibility to just assign
-  # the coverage datasets to a different navigation dataset.
+    # If everything goes south, there can be adf uuids that list coverage datasets,
+    # but no navigation dataset. We give the user the possibility to just assign
+    # the coverage datasets to a different navigation dataset.
   list_of_healthy_nav_datasets = []
   list_of_healthy_nav_dataset_names = []
   for adf_uuid, dataset_collection in dataset_collection_groups.iteritems():
@@ -691,9 +824,10 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
       dataset_collection_groups[adf_uuid][
           "navigation_dataset"] = list_of_healthy_nav_datasets[index][1]
 
-  ##############################################################################
-  # For all dataset groups copy together the annotation files and upload data.
-  # Now copy the annotation files to the output directory of the corresponding dataset.
+    ##########################################################################
+    # For all dataset groups copy together the annotation files and upload data.
+    # Now copy the annotation files to the output directory of the
+    # corresponding dataset.
   for adf_uuid, dataset_collection in dataset_collection_groups.iteritems():
     print "Working on adf uuid %s" % adf_uuid
     navigation_dataset = dataset_collection["navigation_dataset"]
@@ -771,7 +905,8 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
       coverage_dataset["dataset_information"]["upload_ok"] = True
       uploaded_datasets.append(coverage_dataset["dataset_information"])
 
-  # Now release the entire data collection for processing, by marking the upload as complete.
+  # Now release the entire data collection for processing, by marking the
+  # upload as complete.
     print "Marking the dataset %s as complete." % navigation_dataset_dir
     marker_file_name = os.path.join(navigation_dataset_dir, "upload_complete")
     open(marker_file_name, "a").close()
@@ -803,7 +938,8 @@ def handle_device_download(root_dir, venue, ops_annotations_folder,
     application_data_space = "/data/data/com.projecttango.tangomapper/files/"
   else:
     if dataset_type == DatasetType.Operations:
-      application_data_space = "/data/data/com.projecttango.tango/files/datasets/"
+      application_data_space = (
+          "/data/data/com.projecttango.tango/files/datasets/")
     else:
       print "Error unknown dataset type"
       exit(-1)
@@ -822,7 +958,9 @@ def handle_device_download(root_dir, venue, ops_annotations_folder,
   devices_and_folders = []
 
   for device in devices:
-    # If we are in ops collection mode, download first all files from maps creator.
+    ensure_root(device)
+    # If we are in ops collection mode, download first all files from maps
+    # creator.
     if dataset_type == DatasetType.Operations:
       print "Downloading annotation files from MapsCreator..."
       directory = os.path.join(root_dir, ops_annotations_folder)
@@ -876,7 +1014,8 @@ def handle_device_download(root_dir, venue, ops_annotations_folder,
               "a time for the dataset collect in the format "
               "HHMMSS (current: {1}):".format(device, time_stamp))
 
-        # If not all datasets are from the same location, query the user per dataset.
+        # If not all datasets are from the same location, query the user per
+        # dataset.
       if dataset_origin == DatasetOrigin.MultipleBuildings:
         while True:
           print "Please provide information for device {0} and dataset {1} {2}".format(
@@ -889,13 +1028,19 @@ def handle_device_download(root_dir, venue, ops_annotations_folder,
           location = raw_input("Collect Location ({0}): ".format(
               location)) or location
 
-          venue = "_".join([country, state, city, location])
+          venue = "_".join([country.upper(), state.upper(), city.upper(), location])
 
-          title = "Will store data as: {0}_{1}_{2}. OK?".format(
-              venue, date_stamp, time_stamp)
-          _, ok = pick(["yes", "no"], title)
-          if ok == 0:
-            break
+          if re.match("^[A-Za-z0-9_]*$", venue):
+            title = "Will store data as: {0}_{1}_{2}. OK?".format(
+                venue, date_stamp, time_stamp)
+            _, ok = pick(["yes", "no"], title)
+            if ok == 0:
+              break
+          else:
+            title = ("Provided venue name: {0}_{1}_{2}. is not a valid name. "
+                "Please use only letters, numbers and underscores.").format(
+                venue, date_stamp, time_stamp)
+            pick(["OK"], title)
 
       devices_and_folders.append((device, dataset_path, venue, date_stamp,
                                   time_stamp))
@@ -977,8 +1122,8 @@ def collect_downloaded_dataset_info(data_directory, root_dir, venue,
 
 
 def main():
-  parser = argparse.ArgumentParser(description="Pull datasets from device or " \
-                                   "directory, compress them and upload to a "\
+  parser = argparse.ArgumentParser(description="Pull datasets from device or "
+                                   "directory, compress them and upload to a "
                                    "cloud bucket.")
   parser.add_argument("-c",
                       action="store_true",
@@ -991,7 +1136,7 @@ def main():
                       dest="upload",
                       help='Don\'t upload datasets.')
   parser.add_argument("--data_directory", required=False,
-                      help="The data directory that the datasets are " \
+                      help="The data directory that the datasets are "
                       "stored in; if previously downloaded from device.")
   parser.add_argument("--destination_sub_directory",
                       required=False,
@@ -1042,14 +1187,19 @@ def main():
         location = raw_input("Collect Location ({0}): ".format(
             location)) or location
 
-        venue = "_".join([country, state, city, location])
+        venue = "_".join([country.upper(), state.upper(), city.upper(), location])
 
-        title = "Will store data with location: {0}. OK?".format(venue)
-        _, ok = pick(["yes", "no"], title)
-        if ok == 0:
-          break
+        if re.match("^[A-Za-z0-9_]*$", venue):
+          title = "Will store dataset as: {0}. OK?".format(venue)
+          _, ok = pick(["yes", "no"], title)
+          if ok == 0:
+            break
+        else:
+          title = ("Provided venue name: {0}. is not a valid name. "
+              "Please use only letters, numbers and underscores.").format(venue)
+          pick(["OK"], title)
 
-    venue = "_".join([country, state, city, location])
+    venue = "_".join([country.upper(), state.upper(), city.upper(), location])
 
   pulled_datasets = []
   # If the user has provided a directory to upload, traverse the directory.
