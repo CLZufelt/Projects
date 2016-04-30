@@ -23,6 +23,7 @@ import datetime
 import fnmatch
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -1028,7 +1029,7 @@ def handle_device_download(root_dir, venue, ops_annotations_folder,
           location = raw_input("Collect Location ({0}): ".format(
               location)) or location
 
-          venue = "_".join([country.upper(), state.upper(), city.upper(), location])
+          venue = "_".join([country.upper(), state.upper(), city.upper(), location.upper()])
 
           if re.match("^[A-Za-z0-9_]*$", venue):
             title = "Will store data as: {0}_{1}_{2}. OK?".format(
