@@ -20,8 +20,24 @@
 import argparse
 import calendar
 import datetime
-import fnmatch
 import os
+import subprocess
+
+# First ensure pip is installed.
+try:
+  subprocess.check_call("pip --version", shell=True)
+except subprocess.CalledProcessError:
+  print "Pip package installer not available, installing now using: 'sudo easy_install pip'"
+  os.system("sudo easy_install pip")
+  
+try:
+  from enum import Enum
+except ImportError:
+  print "Enum library missing, installing now using: 'sudo pip install enum'"
+  os.system("sudo pip install enum")
+  from enum import Enum
+  
+import fnmatch
 import platform
 import re
 import shutil
@@ -31,28 +47,14 @@ import tarfile
 import threading
 import time
 try:
-  from enum import Enum
-except ImportError:
-  print "Enum library missing, installing now using: 'sudo pip install enum'"
-  print "Script will restart after installation completes."
-  try:
-    os.system("sudo pip install enum")
-  except OSError:
-    os.system("sudo easy_install pip")
-    os.system("sudo pip install enum")
-  os.execv(__file__,sys.argv)
-try:
   from pick import pick
 except ImportError:
   print "Pick library missing, installing now using: 'sudo pip install pick'"
-  print "Script will restart after installation completes."
   os.system("sudo pip install pick")
-  try:
-    os.system("sudo pip install enum")
-  except OSError:
-    os.system("sudo easy_install pip")
-    os.system("sudo pip install enum")
-  os.execv(__file__,sys.argv)
+  from pick import pick
+
+VERSION="20160430"
+print "This is version {0} of the Tango operators upload script.".format(VERSION)
 
 # Check if a given executable is installed on the system.
 
@@ -76,11 +78,12 @@ def has_executable(program):
 
   return None
 
-# Ensure we have gsutil installed.
+# Ensure we have gsutil installed; automatic installation is too complex
+# so we ask the user to do this for us (needs browser login etc.).
 if not has_executable("gsutil"):
-  print(
-      "gsutil executable is missing. Please visit "
-      "https://cloud.google.com/storage/docs/gsutil_install for instructions.")
+  title = ("gsutil executable is missing. Please visit "
+  "https://cloud.google.com/storage/docs/gsutil_install for instructions")
+  pick(["OK"], title)
   exit(-1)
 
 # In order to decide if we need to ask the user once for the location of the
@@ -389,6 +392,9 @@ def adb_pull_dataset(root_dir, venue, device, application_space, dataset,
 
 def cleanup_temp_folder(uploaded_datasets, root_dir):
   dataset_information = []
+  
+  all_upload_ok = True
+  
   for uploaded_dataset in uploaded_datasets:
     folder_size_bytes = float(get_directory_size(uploaded_dataset[
         "dataset_dir"]))
@@ -396,6 +402,8 @@ def cleanup_temp_folder(uploaded_datasets, root_dir):
     dataset_information.append("{:<40} {:.2}MB -- Upload OK: {:<}".format(
         os.path.split(uploaded_dataset["dataset_dir"])[-1], folder_size_bytes /
         1024. / 1024., str(uploaded_dataset["upload_ok"])))
+    # Aggregate upload success over all datasets.
+    all_upload_ok = all_upload_ok and uploaded_dataset["upload_ok"]
 
   folder_information = []
   for dir_name in os.listdir(root_dir):
@@ -407,6 +415,12 @@ def cleanup_temp_folder(uploaded_datasets, root_dir):
   title = ("Status of datasets:\n\t" + "\n\t".join(dataset_information) + "\n\n"
            "The following temporary files will be deleted from disk:\n\t" +
            "\n\t".join(folder_information))
+  
+  if not all_upload_ok:
+    title += ("\n\n** WARNING ** WARNING ** WARNING ** WARNING ** WARNING **\n\n"
+              "Not all datasets were uploaded successfully, don't clear the "
+              "device unless you know what you are doing."
+              "\n\n** WARNING ** WARNING ** WARNING ** WARNING ** WARNING **\n\n")
 
   _, ok = pick(["Cancel", "OK"], title)
   if ok == 0:
@@ -466,7 +480,13 @@ def upload_folder(source_file, bucket_name, subdir):
   source_dir = os.path.dirname(os.path.realpath(source_file))
   command = ["gsutil", "-m", "rsync", source_dir, destination_dir]
   print "Running upload command: %s" % " ".join(command)
-  subprocess.call(command)
+  try:
+    subprocess.check_call(command)
+  except subprocess.CalledProcessError:
+    print "Error running upload command: %s" % " ".join(command)
+    return False
+  
+  return True
 
   # Upload the contents of a folder and it's subfolders to GCS.
 
@@ -480,12 +500,21 @@ def upload_folder_recursive(source_dir, bucket_name, subdir):
   command = ["gsutil", "cp", marker_file_name,
              destination_dir + "/upload_started"]
   print "Running bucket touch command: %s" % " ".join(command)
-  subprocess.call(command)
+  try:
+    subprocess.check_call(command)
+  except subprocess.CalledProcessError:
+    print "Error running upload command: %s" % " ".join(command)
+    return False
 
   command = ["gsutil", "-m", "rsync", "-r", source_dir, destination_dir]
   print "Running upload command: %s" % " ".join(command)
-  subprocess.call(command)
-
+  try:
+    subprocess.check_call(command)
+  except subprocess.CalledProcessError:
+    print "Error running upload command: %s" % " ".join(command)
+    return False
+  
+  return True
 
 # Handle the uploading of ground-truth files to GCS.
 def handle_gt_upload_to_bucket(pulled_datasets, destination_sub_directory):
@@ -494,6 +523,20 @@ def handle_gt_upload_to_bucket(pulled_datasets, destination_sub_directory):
   uploaded_datasets = []
   for dataset_information in pulled_datasets:
     assert os.path.exists(dataset_information["dataset_dir"])
+    
+    # Make sure the bag-file is there and at least warn about it.
+    bag_file_path = (
+        os.path.join(
+            dataset_information["dataset_dir"],
+            "bag", "0001.bag"))
+    if not os.path.exists(bag_file_path):
+      title = (
+          "Dataset {:<} from device {:<} is missing the recorded dataset "
+          "information (bag-file). Skipping.".format(dataset_information["dataset_dir"], 
+                                                     dataset_information["device"]))
+      _, ok = pick(["OK"], title)
+      continue
+    
     # Ground-truth collects are compressed and uploaded.
     try:
       identifier = make_dataset_id(dataset_information["venue"],
@@ -512,8 +555,8 @@ def handle_gt_upload_to_bucket(pulled_datasets, destination_sub_directory):
       else:
         bucket_destination += "/" + destination_sub_directory
 
-      upload_folder(archive_name, cloud_bucket_name, bucket_destination)
-      dataset_information["upload_ok"] = True
+      upload_ok = upload_folder(archive_name, cloud_bucket_name, bucket_destination)
+      dataset_information["upload_ok"] = upload_ok
       uploaded_datasets.append(dataset_information)
     except IOError as e:
       dataset_information["upload_ok"] = False
@@ -641,6 +684,14 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
         os.path.join(
             dataset_information["dataset_dir"],
             "calibration.xml"))
+            
+    if not os.path.exists(calibration_file_path):
+      # This should not be needed, but try to copy the file again.
+      command = make_calibration_file_pull_command(
+          dataset_information["device"], dataset_information["dataset_dir"], "calibration.xml")
+      print "Copying calibration file again using: ", " ".join(command[:1])
+      run_adb_command(" ".join(command[:1]))
+      
     if not os.path.exists(calibration_file_path):
       title = (
           "Device {:<} is missing the calibration.xml file. "
@@ -876,9 +927,9 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
       # Upload the navigation dataset.
     bucket_destination = os.path.join(venue, navigation_dataset_uuid,
                                       navigation_dataset_uuid)
-    upload_folder_recursive(navigation_dataset_dir, cloud_bucket_name,
+    upload_ok = upload_folder_recursive(navigation_dataset_dir, cloud_bucket_name,
                             bucket_destination)
-    navigation_dataset["dataset_information"]["upload_ok"] = True
+    navigation_dataset["dataset_information"]["upload_ok"] = upload_ok
     uploaded_datasets.append(navigation_dataset["dataset_information"])
 
     # Copy the flp files for the coverage datasets.
@@ -900,10 +951,10 @@ def handle_ops_upload_to_bucket(root_dir, ops_annotations_folder,
       # Upload the coverage dataset.
       bucket_destination = os.path.join(venue, navigation_dataset_uuid,
                                         coverage_dataset_uuid)
-      upload_folder_recursive(coverage_dataset_dir, cloud_bucket_name,
+      upload_ok = upload_folder_recursive(coverage_dataset_dir, cloud_bucket_name,
                               bucket_destination)
 
-      coverage_dataset["dataset_information"]["upload_ok"] = True
+      coverage_dataset["dataset_information"]["upload_ok"] = upload_ok
       uploaded_datasets.append(coverage_dataset["dataset_information"])
 
   # Now release the entire data collection for processing, by marking the
@@ -955,6 +1006,11 @@ def handle_device_download(root_dir, venue, ops_annotations_folder,
              for device in [line.split("\t")
                             for line in os.popen("adb devices").readlines()
                             if len(line.split("\t")) == 2]]
+
+  if not devices:
+    title = ("Did not find any devices plugged into this machine.")
+    pick(["OK"], title)
+    exit(-1)
 
   devices_and_folders = []
 
@@ -1029,7 +1085,7 @@ def handle_device_download(root_dir, venue, ops_annotations_folder,
           location = raw_input("Collect Location ({0}): ".format(
               location)) or location
 
-          venue = "_".join([country.upper(), state.upper(), city.upper(), location.upper()])
+          venue = "_".join([country.upper(), state.upper(), city.upper(), location])
 
           if re.match("^[A-Za-z0-9_]*$", venue):
             title = "Will store data as: {0}_{1}_{2}. OK?".format(
