@@ -20,8 +20,8 @@ parser.add_argument('--pull', action='store', nargs='*',
 parser.add_argument('--update', action='store_true',
                     default=False, dest='update_library',
                     help='Update library for all connected devices.')
-parser.add_argument('--install', action='store_true',
-                    default=False, dest='install',
+parser.add_argument('--install', action='store', nargs='*',
+                    dest='install',
                     help='Install app(s) to all devices.')
 parser.add_argument('--reboot', action='store_true',
                     default=False, dest='reboot',
@@ -34,7 +34,7 @@ parser.add_argument('-v | --version', action='store_true',
                   help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = 1.3
+version = 1.4
 
 devices = [device[0]
           for device in [line.split("\t")
@@ -91,7 +91,7 @@ def shutdown():
     os.system("adb -s %s shell 'reboot -p'" %serial)
 
 def install():
-  fileName = argParser.install
+  fileName = argParser.install[0]
   for serial in devices:
      os.system("adb -s %s install -rd %s" % (serial, fileName))
 
@@ -111,3 +111,4 @@ def main():
 
 if __name__ == "__main__":
   main()
+
