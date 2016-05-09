@@ -363,11 +363,11 @@ def main(devices=devices):
     appFile()
   if argParser.unlock_device:
     for device in devices:
-      #unlockThread =threading.Thread(target=unlock,
-      #                               args=(device))
-      #unlockThread.start()
-      #unlockThread.join()
-      unlock(device)
+      unlockThread =threading.Thread(target=unlock,
+                                     args=(device))
+      unlockThread.start()
+      unlockThread.join()
+      #unlock(device)
   if argParser.nv_flash_device:
     nv_title = 'This will nvFlash your device, are you sure?'
     nv_options = ['yes','no']
