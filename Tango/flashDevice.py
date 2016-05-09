@@ -310,7 +310,7 @@ def cleanup():
       removeApp = raw_input("Remove app zip? (y/N)")
       if "y" in removeApp.lower():
         for zip in glob.glob(zipFilePath):
-          if "documents" in zip:
+          if "Apps" in [i for i in zipfile.ZipFile(zip, 'r').namelist()][1]:
             os.remove(zip)
     if argParser.unzip_bsp:
       removeBsp = raw_input("Remove bsp zip? (y/N)")
