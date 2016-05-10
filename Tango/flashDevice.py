@@ -79,7 +79,7 @@ parser.add_argument('-v', action='store_true',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "3.5"
+version = "3.6"
 
 # This makes it possible to run the script on a Mac the same as on Linux.
 whatami = platform.system()
