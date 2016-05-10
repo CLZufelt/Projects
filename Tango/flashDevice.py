@@ -94,7 +94,7 @@ elif whatami == "Darwin":
   downloads = "/Users/" + whoami + "/Downloads/"
 else:
   # Compatibility for Windows requires a lot more things to change.
-  "Sorry. This program is not compatible with Windows."
+  print "Sorry. This program is not compatible with Windows."
   rootpath = None
   downloads = None
   quit()
