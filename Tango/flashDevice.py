@@ -23,6 +23,16 @@ import glob
 import os
 import platform
 import subprocess
+
+try:
+  subprocess.check_call("pip --version", shell=True)
+except subprocess.CalledProcessError:
+  print "Pip package installer not available, installing now using: 'sudo easy_install pip'"
+  if platform.system() == "Linux":
+    os.system("sudo apt-get install python-pip")
+  if platform.system() == "Darwin":
+    os.system("sudo easy_install pip")
+
 import sys
 import threading
 import time
@@ -31,13 +41,7 @@ try:
   from pick import pick
 except ImportError:
   print "Pick library missing, installing now using: 'sudo pip install pick'"
-  print "Script will restart after installation completes."
-  try:
-    os.system("sudo pip install pick")
-  except OSError:
-    os.system("sudo easy_install pip")
-    os.system("sudo pip install pick")
-    os.execv(__file__, sys.argv)
+  os.system("sudo pip install pick")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--build', action='store_true',
@@ -70,6 +74,10 @@ parser.add_argument('-b', action='store_true',
 parser.add_argument('-a', action='store_true',
                     default=False, dest='unzip_apps',
                     help='Unzip apps/TangoCore.')
+parser.add_argument('-p', action='store_true',
+                    default=False, dest='pull_calib',
+                    help='Pull calibration files from device, and restore them'
+                         'after flash.')
 #TODO Use pick for -s
 parser.add_argument('-s', action='store', nargs="*",
                     dest='serial_number',
@@ -79,7 +87,7 @@ parser.add_argument('-v', action='store_true',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "3.6"
+version = "3.7"
 
 # This makes it possible to run the script on a Mac the same as on Linux.
 whatami = platform.system()
@@ -123,7 +131,7 @@ zipFilePath = downloads + "*.zip"
 # Creates a list with the device serial numbers.
 devices = [device[0]
            for device in [line.split("\t")
-           for line in os.popen('adb devices').read().split("\n")
+           for line in os.popen("adb devices").read().split("\n")
            if len(line.split("\t")) == 2]]
 if len(devices) > 0:
   lastDevice = devices[-1]
@@ -133,14 +141,25 @@ if argParser.serial_number:
 
 
 def unlock(device):
-  subprocess.call(['adb', '-s', device, 'reboot', 'bootloader'])
+  subprocess.call(["adb", "-s", device, "reboot", "bootloader"])
   time.sleep(1)
-  subprocess.call(['fastboot', '-s', device, 'oem', 'unlock'])
+  subprocess.call(["fastboot", "-s", device, "oem", "unlock"])
   time.sleep(3)
   subprocess.check_call(["fastboot", "-s", device, "reboot"])
   print "~"*20, "Device unlocked, rebooting now","~"*20
   if device == lastDevice:
     countdown(260)
+
+def pull_calib(device):
+  os.system("adb -s {0} pull /sdcard/config/calibtraion.xml "
+            "{0}/calibration.xml".format(device))
+  os.system("adb -s {0} pull /sdcard/config/online-calibration.xml "
+            "{0}/online-calibration.xml".format(device))
+
+
+def push_calib(device):
+  os.system("adb -s {0} push {0}/calibration.xml sdcard/config".format(device))
+  os.system("adb -s {0} push {0}/online-calibration.xml sdcard/config".format(device))
 
 def countdown(seconds):
   """Generates a countdown timer
@@ -244,6 +263,9 @@ def flashDevices(userBSP, device):
   Args:
     userBSP: Path to the bsp image.
   """
+  if argParser.pull_calib:
+    print "Pulling calibration files from {0}".format(device)
+    pull_calib(device)
   print "Flashing %s ..." % device
   subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
   time.sleep(1)
@@ -263,6 +285,10 @@ def flashDevices(userBSP, device):
   print "Device will now reboot. This takes about 4 minutes."
   if device == lastDevice:
     countdown(245)
+  if argParser.pull_calib:
+    push_calib(device)
+    print "Checking sdcard/config on device {0}".format(device)
+    print "adb -s {0} shell 'ls sdcard/config'".format(device)
 
 def nvFlash(device):
   subprocess.check_call(["bash", nvPath + "flash.sh"])
@@ -351,7 +377,7 @@ def AppChrono():
 
 def reboot(devices):
   for device in devices:
-    os.system('adb -s %s reboot' % device)
+    os.system("adb -s %s reboot" % device)
 
 
 def main(devices=devices):
@@ -369,15 +395,15 @@ def main(devices=devices):
       #unlockThread.join()
       unlock(device)
   if argParser.nv_flash_device:
-    nv_title = 'This will nvFlash your device, are you sure?'
-    nv_options = ['yes','no']
+    nv_title = "This will nvFlash your device, are you sure?"
+    nv_options = ["yes","no"]
     _, nv_flash = pick(nv_options, nv_title)
     if nv_flash == 0:
       for device in devices:
         nvFlash(device)
   if argParser.flash_device:
     title = "Are all devices ready to flash?"
-    options = ['yes', 'no']
+    options = ["yes", "no"]
     _, nextStep = pick(options, title)
     if nextStep == 0:
       for device in devices:
