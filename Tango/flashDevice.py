@@ -87,7 +87,7 @@ parser.add_argument('-v', action='store_true',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "3.7"
+version = "4.0"
 
 # This makes it possible to run the script on a Mac the same as on Linux.
 whatami = platform.system()
@@ -151,15 +151,17 @@ def unlock(device):
     countdown(260)
 
 def pull_calib(device):
-  os.system("adb -s {0} pull /sdcard/config/calibtraion.xml "
+  os.system("adb -s {0} pull /sdcard/config/calibration.xml "
             "{0}/calibration.xml".format(device))
   os.system("adb -s {0} pull /sdcard/config/online-calibration.xml "
             "{0}/online-calibration.xml".format(device))
 
 
 def push_calib(device):
-  os.system("adb -s {0} push {0}/calibration.xml sdcard/config".format(device))
-  os.system("adb -s {0} push {0}/online-calibration.xml sdcard/config".format(device))
+  os.system("adb -s {0} push {0}/calibration.xml "
+            "sdcard/config/calibration.xml".format(device))
+  os.system("adb -s {0} push {0}/online-calibration.xml "
+            "sdcard/config/online-calibration.xml".format(device))
 
 def countdown(seconds):
   """Generates a countdown timer
@@ -263,9 +265,6 @@ def flashDevices(userBSP, device):
   Args:
     userBSP: Path to the bsp image.
   """
-  if argParser.pull_calib:
-    print "Pulling calibration files from {0}".format(device)
-    pull_calib(device)
   print "Flashing %s ..." % device
   subprocess.check_call(["adb", "-s", device, "reboot", "bootloader"])
   time.sleep(1)
@@ -285,10 +284,6 @@ def flashDevices(userBSP, device):
   print "Device will now reboot. This takes about 4 minutes."
   if device == lastDevice:
     countdown(245)
-  if argParser.pull_calib:
-    push_calib(device)
-    print "Checking sdcard/config on device {0}".format(device)
-    print "adb -s {0} shell 'ls sdcard/config'".format(device)
 
 def nvFlash(device):
   subprocess.check_call(["bash", nvPath + "flash.sh"])
@@ -344,6 +339,15 @@ def cleanup():
         for zip in glob.glob(zipFilePath):
           if "ardbeg" in zip:
             os.remove(zip)
+  if argParser.pull_calib:
+    for device in devices:
+      if device in glob.glob("*"):
+        delete_calib = raw_input("Delete calibration files? (Y/n)")
+        if not "n" in delete_calib.lower():
+          for calib in glob.glob("CEIP*"):
+            if device in calib:
+              os.remove(calib)
+
 
 
 def BSPChrono():
@@ -387,6 +391,14 @@ def main(devices=devices):
     bspFile()
   if argParser.unzip_apps:
     appFile()
+  if argParser.pull_calib:
+    pull_title = "Are devices set to enable USB debugging??"
+    options = ["yes", "no"]
+    _, pull_pick = pick(options, pull_title)
+    if pull_pick == 0:
+      for device in devices:
+        pull_calib(device)
+  time.sleep(2)
   if argParser.unlock_device:
     for device in devices:
       #unlockThread =threading.Thread(target=unlock,
@@ -404,14 +416,20 @@ def main(devices=devices):
   if argParser.flash_device:
     title = "Are all devices ready to flash?"
     options = ["yes", "no"]
-    _, nextStep = pick(options, title)
-    if nextStep == 0:
+    _, flash_pick = pick(options, title)
+    if flash_pick == 0:
       for device in devices:
         #flashThread = threading.Thread(target=flashDevices,
         #                          args=(bspPath + BSPChrono(), device))
         #flashThread.start()
         #flashThread.join()
         flashDevices(bspPath + BSPChrono(), device)
+  if argParser.pull_calib and argParser.user_build and argParser.flash_device:
+    push_title = "Ensure devices are set to enable USB debugging."
+    options = ["ok"]
+    _, push_pick = pick(options, push_title)
+    for device in devices:
+      push_calib(device)
   if argParser.push_apps or argParser.tango_core:
     for device in devices:
       installApks(AppChrono() + "-" + incrementer, device, appUnzipPath)
