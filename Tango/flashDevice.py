@@ -78,16 +78,15 @@ parser.add_argument('-p', action='store_true',
                     default=False, dest='pull_calib',
                     help='Pull calibration files from device, and restore them'
                          'after flash.')
-#TODO Use pick for -s
-parser.add_argument('-s', action='store', nargs="*",
-                    dest='serial_number',
+parser.add_argument('-s', action='store_true',
+                    default=False, dest='serial_number',
                     help='Serial number for specific device or devices.')
 parser.add_argument('-v', action='store_true',
                     default=False, dest='version_info',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "4.0"
+version = "4.1"
 
 # This makes it possible to run the script on a Mac the same as on Linux.
 whatami = platform.system()
@@ -137,7 +136,12 @@ if len(devices) > 0:
   lastDevice = devices[-1]
 
 if argParser.serial_number:
-  devices = argParser.serial_number
+  print devices
+  serial_title = "Which device would you like to use?"
+  serial_options = devices
+  _, pick_serial = pick(serial_options, serial_title)
+  devices = pick_serial
+  print devices
 
 
 def unlock(device):
@@ -419,11 +423,13 @@ def main(devices=devices):
     _, flash_pick = pick(options, title)
     if flash_pick == 0:
       for device in devices:
-        #flashThread = threading.Thread(target=flashDevices,
-        #                          args=(bspPath + BSPChrono(), device))
-        #flashThread.start()
-        #flashThread.join()
-        flashDevices(bspPath + BSPChrono(), device)
+        if devices.length() < 3:
+          flashThread = threading.Thread(target=flashDevices,
+                                    args=(bspPath + BSPChrono(), device))
+          flashThread.start()
+          flashThread.join()
+        else:
+          flashDevices(bspPath + BSPChrono(), device)
   if argParser.pull_calib and argParser.user_build and argParser.flash_device:
     push_title = "Ensure devices are set to enable USB debugging."
     options = ["ok"]
