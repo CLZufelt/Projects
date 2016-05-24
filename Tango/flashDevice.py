@@ -423,7 +423,7 @@ def main(devices=devices):
     _, flash_pick = pick(options, title)
     if flash_pick == 0:
       for device in devices:
-        if devices.length() < 3:
+        if len(devices) < 3:
           flashThread = threading.Thread(target=flashDevices,
                                     args=(bspPath + BSPChrono(), device))
           flashThread.start()
