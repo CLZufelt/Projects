@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import argparse
+import glob
 import os
 import sys
 import time
@@ -32,6 +33,9 @@ parser.add_argument('--shutdown', action='store_true',
 parser.add_argument('-v | --version', action='store_true',
                   default=False, dest='version_info',
                   help='Display version information, and nothing else.')
+parser.add_argument('--pull_cam', action='store_true',
+                    default=False, dest='pull_cam',
+                    help='Pull /tango/camera from device before calibration')
 argParser = parser.parse_args()
 
 version = 1.4
@@ -93,7 +97,18 @@ def shutdown():
 def install():
   fileName = argParser.install[0]
   for serial in devices:
-     os.system("adb -s %s install -rd %s" % (serial, fileName))
+    for apk in glob.glob(fileName + "*"):
+      os.system("adb -s %s install -rd %s" % (serial, apk))
+
+def pull_calib(device):
+  os.system("adb -s {0} pull /tango/camera "
+            "{0}/".format(device))
+
+def push_calib(device):
+  os.system("adb -s {0} push {0}/calibration.xml "
+            "sdcard/config/calibration.xml".format(device))
+  os.system("adb -s {0} push {0}/online-calibration.xml "
+            "sdcard/config/online-calibration.xml".format(device))
 
 def main():
   if argParser.push:
@@ -108,6 +123,9 @@ def main():
     install()
   if argParser.pull:
     pull()
+  if argParser.pull_cam:
+    for device in devices:
+      pull_calib(device)
 
 if __name__ == "__main__":
   main()
