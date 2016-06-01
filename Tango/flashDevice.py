@@ -86,7 +86,7 @@ parser.add_argument('-v', action='store_true',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "4.1"
+version = "4.2.1"
 
 # This makes it possible to run the script on a Mac the same as on Linux.
 whatami = platform.system()
@@ -196,9 +196,12 @@ def zipPath(searchTerm, destPath):
   """
   if not argParser.user_build:
     exclude = "_002.zip"
+    also_exclude = "_004.zip"
   else:
     exclude = "_001.zip"
-  lst = [x for x in glob.glob(zipFilePath) if not x.endswith(exclude)]
+    also_exclude = "_003.zip"
+  lst = [x for x in glob.glob(zipFilePath) if not x.endswith(exclude)
+         and not x.endswith(also_exclude)]
   for name in lst:
     with zipfile.ZipFile(name, 'r') as z:
       for item in z.namelist():
