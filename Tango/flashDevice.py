@@ -86,7 +86,7 @@ parser.add_argument('-v', action='store_true',
                     help='Display version information, and nothing else.')
 argParser = parser.parse_args()
 
-version = "4.2.1"
+version = "7.14.16"
 
 # This makes it possible to run the script on a Mac the same as on Linux.
 whatami = platform.system()
@@ -140,8 +140,9 @@ if argParser.serial_number:
   serial_title = "Which device would you like to use?"
   serial_options = devices
   _, pick_serial = pick(serial_options, serial_title)
-  devices = pick_serial
-  print devices
+  devices = devices[pick_serial]
+
+print devices
 
 
 def unlock(device):
