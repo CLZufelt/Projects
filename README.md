@@ -1,2 +1,1 @@
-# Scratch
-Scratch Programs (Practice)
+# Programming projects
